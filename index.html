@@ -3,147 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>웹 OCR 재고 검색기</title>
-    
-    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22재고검색기%22,%22short_name%22:%22재고검색%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23ffffff%22,%22theme_color%22:%22%234CAF50%22}">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="재고검색기">
-
+    <title>웹 OCR 재고 검색기 v3</title>
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22재고검색기%22,%22short_name%22:%22재고검색%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23ffffff%22,%22theme_color%22:%22%232b6cb0%22}">
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
     <style>
-        :root { --primary-color: #4CAF50; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; background-color: #f5f5f5; color: #333; }
-        h2 { text-align: center; color: #2c3e50; margin-bottom: 25px; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h3 { margin-top: 0; color: #34495e; border-left: 4px solid var(--primary-color); padding-left: 10px; }
+        :root { --primary-color: #2b6cb0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 15px; max-width: 600px; margin: 0 auto; background-color: #f7fafc; color: #2d3748; }
+        h2 { text-align: center; color: #1a202c; margin-bottom: 20px; font-size: 22px; }
+        .card { background: white; padding: 18px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); margin-bottom: 15px; border: 1px solid #e2e8f0; }
+        h3 { margin-top: 0; color: #2d3748; font-size: 16px; border-left: 4px solid var(--primary-color); padding-left: 8px; margin-bottom: 12px; }
         input[type="file"] { display: none; }
-        .btn { display: block; width: 100%; padding: 12px; background: var(--primary-color); color: white; text-align: center; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; box-sizing: border-box; font-size: 16px; }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
-        #preview { max-width: 100%; max-height: 250px; border-radius: 8px; margin: 15px auto 0; display: none; object-fit: contain; }
-        .status { margin-top: 10px; font-size: 14px; color: #666; text-align: center; }
-        #result-box { background: #edf2f7; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; word-break: break-all; margin-top: 10px; font-size: 15px; border: 1px solid #cbd5e0; }
-        .highlight { color: #e53e3e; font-weight: bold; }
+        .btn { display: block; width: 100%; padding: 12px; background: var(--primary-color); color: white; text-align: center; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; border: none; box-sizing: border-box; }
+        
+        /* 수동 검색창 스타일 */
+        .search-container { display: flex; gap: 8px; margin-top: 5px; }
+        .search-input { flex: 1; padding: 12px; border: 2px solid #cbd5e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        .search-btn { padding: 12px 20px; background: #4a5568; color: white; border-radius: 8px; font-weight: bold; border: none; font-size: 15px; cursor: pointer; }
+        
+        #preview { max-width: 100%; max-height: 200px; border-radius: 8px; margin: 12px auto 0; display: none; object-fit: contain; border: 1px solid #cbd5e0; }
+        .status { margin-top: 8px; font-size: 13px; color: #718096; text-align: center; }
+        #result-box { background: #fff; padding: 10px; border-radius: 8px; white-space: pre-wrap; margin-top: 10px; font-size: 14px; }
+        .item-block { background: #ebf8ff; border-left: 4px solid #3182ce; padding: 12px; margin-bottom: 10px; border-radius: 0 8px 8px 0; }
+        .item-title { font-weight: bold; color: #2b6cb0; margin-bottom: 5px; border-bottom: 1px dashed #bee3f8; padding-bottom: 3px; }
     </style>
 </head>
 <body>
 
-    <h2>📦 모바일 재고 검색기 (OCR)</h2>
+    <h2>📦 모바일 재고 검색기 (OCR + 수동)</h2>
 
     <div class="card">
         <h3>1. 재고 엑셀 파일 선택</h3>
-        <label for="excel-file" class="btn">📁 엑셀 파일 불러오기</label>
+        <label for="excel-file" class="btn" style="background:#48bb78;">📁 엑셀 파일 불러오기</label>
         <input type="file" id="excel-file" accept=".xlsx, .xls">
         <div id="excel-status" class="status">아직 로드된 파일이 없습니다.</div>
     </div>
 
     <div class="card">
-        <h3>2. 상품 글자 촬영</h3>
-        <label for="camera-input" id="camera-label" class="btn" style="background: #3182ce;">📷 카메라 열기 / 사진 선택</label>
+        <h3>2-A. 모델명 직접 입력 (수동 검색)</h3>
+        <div class="search-container">
+            <input type="text" id="manual-search-input" class="search-input" placeholder="예: HR1508 또는 HCO-6020R">
+            <button id="manual-search-btn" class="search-btn">검색</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>2-B. 또는 상품 글자 촬영 (자동 OCR)</h3>
+        <label for="camera-input" class="btn">📷 카메라 열기 / 사진 선택</label>
         <input type="file" id="camera-input" accept="image/*" capture="environment">
-        <img id="preview" alt="촬영된 이미지">
+        <img id="preview" alt="촬영 이미지">
         <div id="ocr-status" class="status"></div>
     </div>
 
     <div class="card">
         <h3>3. 검색 결과</h3>
-        <div id="result-box">재고 파일을 먼저 등록하고 사진을 찍어주세요.</div>
+        <div id="result-box">재고 파일을 등록하고 검색을 진행해 주세요.</div>
     </div>
 
     <script>
         let inventoryData = [];
 
-        // 서비스 워커 등록 (오프라인 작동 및 PWA 설치 환경 제공)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('data:text/javascript,self.addEventListener("fetch",()=>{"/*무조건통과*/"});');
-            });
-        }
-
-        // [1] 엑셀 파일 로드 및 파싱
+        // 엑셀 로드
         document.getElementById('excel-file').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
-            
             const reader = new FileReader();
             document.getElementById('excel-status').innerText = "⏳ 엑셀 분석 중...";
-            
             reader.onload = function(e) {
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                     inventoryData = XLSX.utils.sheet_to_json(worksheet);
-                    
-                    document.getElementById('excel-status').innerHTML = `✅ <b>로드 완료:</b> 총 ${inventoryData.length}개의 품목`;
-                    document.getElementById('result-box').innerText = "사진을 찍으면 이곳에 결과가 나옵니다.";
+                    document.getElementById('excel-status').innerHTML = `✅ <b>로드 완료:</b> 총 ${inventoryData.length}개 품목`;
                 } catch (error) {
-                    document.getElementById('excel-status').innerText = "❌ 엑셀 읽기 실패. 파일 형식을 확인하세요.";
+                    document.getElementById('excel-status').innerText = "❌ 엑셀 파일 읽기 실패";
                 }
             };
             reader.readAsArrayBuffer(file);
         });
 
-        // [2] 카메라 촬영 및 텍스트 인식 (OCR)
+        // [신규] 수동 검색 버튼 이벤트
+        document.getElementById('manual-search-btn').addEventListener('click', function() {
+            const query = document.getElementById('manual-search-input').value.trim();
+            if (!query) {
+                alert("검색할 모델명을 입력해 주세요.");
+                return;
+            }
+            document.getElementById('ocr-status').innerHTML = "⚙️ <b>수동 검색 처리 중...</b>";
+            // 사진 미리보기 초기화
+            document.getElementById('preview').style.display = 'none';
+            
+            searchInventory(query, true); // 수동 검색 플래그 true
+        });
+
+        // 엔터키 쳐도 검색되게 설정
+        document.getElementById('manual-search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('manual-search-btn').click();
+            }
+        });
+
+        // 카메라 촬영 및 OCR
         document.getElementById('camera-input').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
 
-            // 이미지 미리보기 표시
             const preview = document.getElementById('preview');
             preview.src = URL.createObjectURL(file);
             preview.style.display = 'block';
 
             const ocrStatus = document.getElementById('ocr-status');
-            ocrStatus.innerHTML = "🔄 <b>글자 인식 중...</b> (약 3~5초 소요)";
-            document.getElementById('result-box').innerText = "";
+            ocrStatus.innerHTML = "🔄 <b>글자 판독 중...</b> (3~5초 소요)";
 
-            // Tesseract.js 실행 (한국어 + 영어 동시 분석)
-            Tesseract.recognize(file, 'kor+eng')
+            Tesseract.recognize(file, 'eng+kor')
             .then(({ data: { text } }) => {
-                ocrStatus.innerHTML = "✅ <b>인식 성공!</b>";
-                searchInventory(text);
+                ocrStatus.innerHTML = "✅ <b>판독 완료</b>";
+                searchInventory(text, false); // 자동 OCR 검색
             }).catch(err => {
-                console.error(err);
-                ocrStatus.innerHTML = "❌ <b>인식 실패</b> 다시 시도해주세요.";
+                ocrStatus.innerHTML = "❌ <b>인식 오류 발생</b>";
             });
         });
 
-        // [3] 재고 데이터 내 검색 알고리즘
-        function searchInventory(extractedText) {
-            // 비교를 위해 공백 제거 및 대문자화
-            const cleanOCRText = extractedText.replace(/\s+/g, '').toUpperCase();
+        // 통합 검색 로직 (스마트 검색)
+        function searchInventory(inputText, isManual = false) {
+            const resultBox = document.getElementById('result-box');
             
-            if (!cleanOCRText) {
-                document.getElementById('result-box').innerText = "❌ 사진에서 글자를 인식하지 못했습니다.";
+            // 특수문자, 공백을 모두 제거하여 매칭 확률 극대화
+            const cleanInput = inputText.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+
+            if (!cleanInput || cleanInput.length < 2) {
+                resultBox.innerHTML = `❌ <b>검색 실패:</b> 입력하거나 인식된 텍스트가 너무 짧거나 유효하지 않습니다.<br><br>[내용]: "${inputText.trim()}"`;
                 return;
             }
 
-            // 엑셀 내 모든 행을 탐색
+            // 엑셀 데이터 안에서 검색어 매칭행 찾기
             const matchedItems = inventoryData.filter(item => {
                 return Object.values(item).some(val => {
-                    const strVal = String(val).replace(/\s+/g, '').toUpperCase();
-                    // 너무 짧은 텍스트(예: 1글자 단위)로 오매칭되는 것 방지
-                    return strVal.length > 1 && cleanOCRText.includes(strVal);
+                    if (!val) return false;
+                    const strVal = String(val).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+                    // 엑셀 셀 내용이 검색어에 포함되거나, 검색어가 엑셀 셀 내용에 포함되는지 상호 대조
+                    return strVal.length > 1 && (cleanInput.includes(strVal) || strVal.includes(cleanInput));
                 });
             });
 
-            const resultBox = document.getElementById('result-box');
+            // 결과 화면 표시
             if (matchedItems.length > 0) {
-                let output = `📸 <b>인식된 글자:</b>\n"${extractedText.trim()}"\n\n🎯 <b>매칭된 재고 정보 (${matchedItems.length}건):</b>\n`;
+                const methodTitle = isManual ? `✍️ 수동 검색 결과` : `📸 카메라 분석 결과`;
+                let html = `🎯 <b>${methodTitle} 매칭 성공! (${matchedItems.length}건)</b><br><br>`;
+                
                 matchedItems.forEach((item, index) => {
-                    output += `\n[품목 ${index + 1}]\n`;
+                    html += `<div class="item-block">`;
+                    html += `<div class="item-title">품목 정보 ${index + 1}</div>`;
                     for (const [key, value] of Object.entries(item)) {
-                        output += `• ${key}: ${value}\n`;
+                        // 엑셀 빈 열(__EMPTY)은 화면에서 숨김 처리
+                        if(!key.includes('__EMPTY')) { 
+                            html += `• <b>${key}:</b> ${value}<br>`;
+                        }
                     }
+                    html += `</div>`;
                 });
-                resultBox.innerHTML = output;
+                resultBox.innerHTML = html;
+                if(isManual) document.getElementById('ocr-status').innerHTML = "✅ <b>검색 완료</b>";
             } else {
-                resultBox.innerHTML = `📸 <b>인식된 글자:</b>\n"${extractedText.trim()}"\n\n❌ <b>결과 없음:</b> 일치하는 모델명이나 코드가 엑셀에 없습니다.`;
+                resultBox.innerHTML = `🔍 <b>입력/인식된 글자:</b>\n"${inputText.trim()}"\n\n❌ <b>일치하는 재고 없음:</b> 해당 텍스트와 일치하는 품목을 엑셀에서 찾지 못했습니다.`;
+                if(isManual) document.getElementById('ocr-status').innerHTML = "❌ <b>검색 결과 없음</b>";
             }
         }
     </script>
