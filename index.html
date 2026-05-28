@@ -1,175 +1,358 @@
 <index.html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>웹 OCR 재고 검색기 v3</title>
-    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22재고검색기%22,%22short_name%22:%22재고검색%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23ffffff%22,%22theme_color%22:%22%232b6cb0%22}">
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <style>
-        :root { --primary-color: #2b6cb0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 15px; max-width: 600px; margin: 0 auto; background-color: #f7fafc; color: #2d3748; }
-        h2 { text-align: center; color: #1a202c; margin-bottom: 20px; font-size: 22px; }
-        .card { background: white; padding: 18px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); margin-bottom: 15px; border: 1px solid #e2e8f0; }
-        h3 { margin-top: 0; color: #2d3748; font-size: 16px; border-left: 4px solid var(--primary-color); padding-left: 8px; margin-bottom: 12px; }
-        input[type="file"] { display: none; }
-        .btn { display: block; width: 100%; padding: 12px; background: var(--primary-color); color: white; text-align: center; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; border: none; box-sizing: border-box; }
-        
-        /* 수동 검색창 스타일 */
-        .search-container { display: flex; gap: 8px; margin-top: 5px; }
-        .search-input { flex: 1; padding: 12px; border: 2px solid #cbd5e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
-        .search-btn { padding: 12px 20px; background: #4a5568; color: white; border-radius: 8px; font-weight: bold; border: none; font-size: 15px; cursor: pointer; }
-        
-        #preview { max-width: 100%; max-height: 200px; border-radius: 8px; margin: 12px auto 0; display: none; object-fit: contain; border: 1px solid #cbd5e0; }
-        .status { margin-top: 8px; font-size: 13px; color: #718096; text-align: center; }
-        #result-box { background: #fff; padding: 10px; border-radius: 8px; white-space: pre-wrap; margin-top: 10px; font-size: 14px; }
-        .item-block { background: #ebf8ff; border-left: 4px solid #3182ce; padding: 12px; margin-bottom: 10px; border-radius: 0 8px 8px 0; }
-        .item-title { font-weight: bold; color: #2b6cb0; margin-bottom: 5px; border-bottom: 1px dashed #bee3f8; padding-bottom: 3px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="재고스캐너">
+<meta name="theme-color" content="#00e5a0">
+<title>재고 스캐너</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0c12;--s1:#14141e;--s2:#1e1e2e;--s3:#262636;--b1:#2a2a3e;--b2:#383854;--ac:#00e5a0;--ac-dim:rgba(0,229,160,.1);--ac-glow:rgba(0,229,160,.28);--pur:#a78bfa;--pur-dim:rgba(167,139,250,.1);--text:#e2e2f0;--t2:#9898b8;--t3:#55556e;--danger:#f87171;--warn:#fbbf24;--safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:"Noto Sans KR",sans-serif;overscroll-behavior:none}
+.app{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto}
+.topbar{flex-shrink:0;padding:calc(var(--safe-top) + 10px) 15px 10px;background:rgba(12,12,18,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;z-index:50}
+.tb-l{display:flex;align-items:center;gap:9px}
+.logo{width:34px;height:34px;background:linear-gradient(135deg,var(--ac),#00b87a);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 3px 12px var(--ac-glow);flex-shrink:0}
+.app-nm{font-size:16px;font-weight:700;letter-spacing:-.4px}
+.app-sb{font-size:10px;color:var(--t3);font-family:"DM Mono",monospace}
+.free-tag{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-size:9px;font-weight:700;font-family:"DM Mono",monospace;padding:2px 7px;border-radius:20px}
+.date-tag{font-size:10px;color:var(--t3);font-family:"DM Mono",monospace;background:var(--s2);border:1px solid var(--b1);padding:3px 8px;border-radius:20px}
+.tabs{flex-shrink:0;display:flex;background:var(--s1);border-bottom:1px solid var(--b1)}
+.tab{flex:1;padding:9px 4px 7px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:none;color:var(--t3);font-family:"Noto Sans KR",sans-serif;transition:color .15s;position:relative}
+.tab.on{color:var(--ac)}
+.tab.on::after{content:"";position:absolute;bottom:0;left:20%;right:20%;height:2px;background:var(--ac);border-radius:2px 2px 0 0;box-shadow:0 0 6px var(--ac)}
+.tab-ic{font-size:19px}.tab-lb{font-size:10px;font-weight:600}
+.tbadge{position:absolute;top:5px;right:50%;transform:translateX(8px);background:var(--ac);color:#061a10;font-size:9px;font-weight:700;font-family:"DM Mono",monospace;padding:1px 5px;border-radius:10px;min-width:15px;text-align:center}
+.pages{flex:1;overflow:hidden;position:relative}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--safe-bot)+16px);display:none}
+.page.on{display:block}
+.sec{padding:13px 14px}.sec+.sec{padding-top:0}
+.sec-title{font-size:10px;font-family:"DM Mono",monospace;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;gap:8px}
+.sec-title::after{content:"";flex:1;height:1px;background:var(--b1)}
+.divider{height:1px;background:var(--b1);margin:0 14px}
+.stats-row{display:flex;gap:8px;padding:11px 14px 0}
+.stat-box{flex:1;background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:10px 12px;text-align:center}
+.stat-num{font-size:20px;font-weight:700;color:var(--ac);font-family:"DM Mono",monospace;line-height:1}
+.stat-label{font-size:10px;color:var(--t3);margin-top:3px}
+.search-wrap{position:relative}
+.search-wrap input{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:13px;padding:13px 44px 13px 44px;color:var(--text);font-size:15px;font-family:"Noto Sans KR",sans-serif;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.search-wrap input:focus{border-color:var(--ac);background:rgba(0,229,160,.04)}
+.search-wrap input::placeholder{color:var(--t3)}
+.search-ic{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:18px;pointer-events:none}
+.search-clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:13px;cursor:pointer;color:var(--t3);width:24px;height:24px;display:none;align-items:center;justify-content:center;background:var(--s3);border-radius:50%}
+.search-clear.show{display:flex}
+.filter-row{display:flex;gap:7px;overflow-x:auto;padding:9px 14px 0;scrollbar-width:none}
+.filter-row::-webkit-scrollbar{display:none}
+.fchip{flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--b2);background:var(--s2);color:var(--t2);cursor:pointer;transition:all .15s;white-space:nowrap}
+.fchip.on{border-color:var(--ac);background:var(--ac-dim);color:var(--ac)}
+.fchip:active{transform:scale(.96)}
+.results-list{display:flex;flex-direction:column;gap:9px}
+.ri{background:var(--s1);border:1px solid var(--b1);border-radius:14px;overflow:hidden;animation:riseIn .28s ease forwards;opacity:0;transform:translateY(8px)}
+@keyframes riseIn{to{opacity:1;transform:translateY(0)}}
+.ri:nth-child(1){animation-delay:0s}.ri:nth-child(2){animation-delay:.04s}.ri:nth-child(3){animation-delay:.08s}.ri:nth-child(4){animation-delay:.12s}.ri:nth-child(5){animation-delay:.16s}.ri:nth-child(n+6){animation-delay:.2s}
+.ri.s-exact{border-color:rgba(0,229,160,.4);border-left:3px solid var(--ac)}
+.ri.s-high{border-color:rgba(0,229,160,.22)}
+.ri.s-mid{border-color:rgba(251,191,36,.2)}
+.ri-head{padding:10px 13px;background:var(--s2);border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px}
+.ri-model{font-size:14px;font-weight:700;font-family:"DM Mono",monospace;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ri-model mark{background:rgba(0,229,160,.25);color:var(--ac);border-radius:3px;padding:0 2px}
+.stock-badges{display:flex;gap:6px;flex-shrink:0}
+.sbadge{font-size:11px;font-family:"DM Mono",monospace;padding:3px 8px;border-radius:8px;font-weight:700;line-height:1.2;text-align:center;min-width:44px}
+.sbadge.office{background:rgba(167,139,250,.12);color:var(--pur);border:1px solid rgba(167,139,250,.25)}
+.sbadge.floor{background:rgba(0,229,160,.1);color:var(--ac);border:1px solid rgba(0,229,160,.25)}
+.sbadge.zero{background:var(--s3);color:var(--t3);border:1px solid var(--b1)}
+.ri-body{padding:9px 13px}
+.ri-pname{font-size:12px;color:var(--t2);line-height:1.4}
+.ri-pname mark{background:rgba(251,191,36,.15);color:var(--warn);border-radius:3px;padding:0 2px}
+.ri-disc{display:inline-block;font-size:10px;font-family:"DM Mono",monospace;color:var(--danger);background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:5px;padding:1px 6px;margin-top:4px}
+.cam-frame{background:#000;border-radius:14px;overflow:hidden;position:relative;aspect-ratio:4/3}
+.cam-frame img{width:100%;height:100%;object-fit:cover;display:none}
+.cam-frame img.show{display:block}
+.cam-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#090910}
+.cam-ph-ic{font-size:44px;opacity:.2}.cam-ph-tx{font-size:12px;color:var(--t3)}
+.ocr-ov{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:9px;background:rgba(0,0,0,.72);backdrop-filter:blur(4px)}
+.ocr-ov.on{display:flex}
+.corners{position:absolute;inset:14px;pointer-events:none}
+.corner{position:absolute;width:20px;height:20px;border-color:var(--ac);border-style:solid;opacity:.8}
+.corner.tl{top:0;left:0;border-width:3px 0 0 3px;border-radius:3px 0 0 0}
+.corner.tr{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 3px 0 0}
+.corner.bl{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 3px}
+.corner.br{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 3px 0}
+.ocr-bar-w{width:70%;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+.ocr-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--ac),#00ffcc);border-radius:2px;transition:width .3s;box-shadow:0 0 8px var(--ac)}
+.ocr-pct{font-family:"DM Mono",monospace;font-size:13px;color:var(--ac);font-weight:500}
+.ocr-st{font-size:11px;color:var(--t2);font-family:"DM Mono",monospace;letter-spacing:1px}
+.spinner{width:26px;height:26px;border:2px solid var(--b2);border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.cam-btns{display:flex;gap:9px;margin-top:10px}
+.btn{flex:1;padding:13px 10px;border-radius:13px;border:none;font-size:13px;font-weight:700;font-family:"Noto Sans KR",sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;-webkit-appearance:none}
+.btn:active{transform:scale(.96)}
+.btn-primary{background:linear-gradient(135deg,var(--ac),#00c47a);color:#061a10;box-shadow:0 3px 14px var(--ac-glow)}
+.btn-ghost{background:var(--s2);border:1px solid var(--b2);color:var(--text);flex:none;padding:13px 16px;position:relative}
+.btn-ghost input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+.ocr-box{background:var(--s2);border:1px solid var(--b2);border-radius:12px;padding:11px 13px;margin-top:10px}
+.ocr-lbl{font-size:10px;font-family:"DM Mono",monospace;color:var(--t3);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase}
+.ocr-raw{font-size:12px;font-family:"DM Mono",monospace;color:var(--t2);line-height:1.6;word-break:break-all}
+.tokens{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.token{background:var(--ac-dim);border:1px solid rgba(0,229,160,.25);border-radius:6px;padding:3px 8px;font-size:11px;font-family:"DM Mono",monospace;color:var(--ac);cursor:pointer;transition:all .15s}
+.token:active,.token.used{background:rgba(0,229,160,.22);font-weight:700}
+.empty{text-align:center;padding:32px 20px}
+.em-ic{font-size:40px;margin-bottom:10px;opacity:.25}.em-title{font-size:14px;font-weight:700;color:var(--t2);margin-bottom:5px}.em-desc{font-size:12px;color:var(--t3);line-height:1.6}
+.err-box{background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);border-radius:13px;padding:12px 13px;font-size:12px;color:var(--danger);line-height:1.6;display:flex;gap:8px}
+.hist-item{display:flex;gap:11px;padding:11px 13px;border-bottom:1px solid var(--b1);cursor:pointer;transition:background .15s;align-items:center}
+.hist-item:last-child{border-bottom:none}.hist-item:active{background:var(--s2)}
+.hist-thumb{width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--s3)}
+.hist-thumb.tt{display:flex;align-items:center;justify-content:center;font-size:14px;font-family:"DM Mono",monospace;color:var(--ac);background:var(--ac-dim);border:1px solid rgba(0,229,160,.2)}
+.hist-q{font-size:13px;font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist-meta{font-size:11px;color:var(--t2);font-family:"DM Mono",monospace}
+.hist-cnt{font-size:11px;font-family:"DM Mono",monospace;color:var(--ac);background:var(--ac-dim);padding:3px 8px;border-radius:20px;flex-shrink:0}
+.inst-banner{background:linear-gradient(135deg,var(--ac-dim),rgba(0,229,160,.05));border:1px solid rgba(0,229,160,.18);border-radius:13px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .15s;margin-bottom:4px}
+.inst-banner:active{transform:scale(.99)}
+</style>
 </head>
 <body>
+<div class="app">
+<div class="topbar">
+  <div class="tb-l">
+    <div class="logo">&#128230;</div>
+    <div><div class="app-nm">재고 스캐너</div><div class="app-sb">5.27 기준 &middot; 736품목 내장</div></div>
+    <div class="free-tag">FREE</div>
+  </div>
+  <div class="date-tag">2025.05.27</div>
+</div>
+<div class="tabs">
+  <button class="tab on" id="tab-search" onclick="showTab('search')"><span class="tab-ic">&#128269;</span><span class="tab-lb">검색</span></button>
+  <button class="tab" id="tab-scan" onclick="showTab('scan')"><span class="tab-ic">&#128247;</span><span class="tab-lb">OCR스캔</span></button>
+  <button class="tab" id="tab-hist" onclick="showTab('hist')"><span class="tab-ic">&#128336;</span><span class="tab-lb">기록</span><span class="tbadge" id="histBadge" style="display:none"></span></button>
+</div>
+<div class="pages">
 
-    <h2>📦 모바일 재고 검색기 (OCR + 수동)</h2>
-
-    <div class="card">
-        <h3>1. 재고 엑셀 파일 선택</h3>
-        <label for="excel-file" class="btn" style="background:#48bb78;">📁 엑셀 파일 불러오기</label>
-        <input type="file" id="excel-file" accept=".xlsx, .xls">
-        <div id="excel-status" class="status">아직 로드된 파일이 없습니다.</div>
+<div class="page on" id="page-search">
+  <div id="installSec" style="display:none" class="sec">
+    <div class="inst-banner" onclick="installPWA()">
+      <span style="font-size:24px">&#128242;</span>
+      <div><div style="font-size:13px;font-weight:700;color:var(--ac)">홈 화면에 설치</div><div style="font-size:11px;color:var(--t2)">앱처럼 설치하면 빠르게 실행됩니다</div></div>
+      <span style="font-size:18px;color:var(--ac);margin-left:auto">&#8250;</span>
     </div>
-
-    <div class="card">
-        <h3>2-A. 모델명 직접 입력 (수동 검색)</h3>
-        <div class="search-container">
-            <input type="text" id="manual-search-input" class="search-input" placeholder="예: HR1508 또는 HCO-6020R">
-            <button id="manual-search-btn" class="search-btn">검색</button>
-        </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-num" id="statTotal">736</div><div class="stat-label">전체 품목</div></div>
+    <div class="stat-box"><div class="stat-num" id="statStock">—</div><div class="stat-label">재고 있음</div></div>
+    <div class="stat-box"><div class="stat-num" id="statResults">—</div><div class="stat-label">검색 결과</div></div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">모델명 / 품명 검색</div>
+    <div class="search-wrap">
+      <span class="search-ic">&#128269;</span>
+      <input type="text" id="searchInput" placeholder="예: NC-T4217WRX, QND-6022R, NVR..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="onSearch()" onkeydown="if(event.key==='Enter')onSearch()">
+      <div class="search-clear" id="searchClear" onclick="clearSearch()">&#10005;</div>
     </div>
+  </div>
+  <div class="filter-row">
+    <div class="fchip on" onclick="setFilter('all',this)">전체</div>
+    <div class="fchip" onclick="setFilter('stock',this)">&#128994; 재고있음</div>
+    <div class="fchip" onclick="setFilter('office',this)">&#128188; 사무실</div>
+    <div class="fchip" onclick="setFilter('floor',this)">&#127968; 1층</div>
+    <div class="fchip" onclick="setFilter('active',this)">&#9989; 현행품목</div>
+  </div>
+  <div class="sec" style="padding-top:10px"><div id="resultsArea">
+    <div class="empty"><div class="em-ic">&#128230;</div><div class="em-title">5월 27일 재고 데이터</div><div class="em-desc">736개 품목이 내장되어 있습니다<br>모델명을 입력하면 즉시 검색됩니다<br><br>예시: NC-T4217WRX, QND-6022R<br>&#128247; OCR스캔 탭에서 사진으로도 검색 가능</div></div>
+  </div></div>
+</div>
 
-    <div class="card">
-        <h3>2-B. 또는 상품 글자 촬영 (자동 OCR)</h3>
-        <label for="camera-input" class="btn">📷 카메라 열기 / 사진 선택</label>
-        <input type="file" id="camera-input" accept="image/*" capture="environment">
-        <img id="preview" alt="촬영 이미지">
-        <div id="ocr-status" class="status"></div>
+<div class="page" id="page-scan">
+  <div class="sec">
+    <div class="sec-title">카메라로 모델명 인식</div>
+    <div class="cam-frame" id="camFrame">
+      <div class="cam-ph" id="camPh"><div class="cam-ph-ic">&#128247;</div><div class="cam-ph-tx">상품 라벨을 선명하게 찍어주세요</div></div>
+      <img id="prevImg" alt="">
+      <div class="ocr-ov" id="ocrOv">
+        <div class="corners"><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div></div>
+        <div class="spinner"></div>
+        <div class="ocr-bar-w"><div class="ocr-bar" id="ocrBar"></div></div>
+        <div class="ocr-pct" id="ocrPct">0%</div>
+        <div class="ocr-st" id="ocrSt">준비 중...</div>
+      </div>
     </div>
-
-    <div class="card">
-        <h3>3. 검색 결과</h3>
-        <div id="result-box">재고 파일을 등록하고 검색을 진행해 주세요.</div>
+    <div class="cam-btns">
+      <button class="btn btn-ghost">&#128444;<input type="file" id="galInput" accept="image/*" onchange="handleImg(this)"></button>
+      <button class="btn btn-primary" onclick="document.getElementById('camInput').click()">&#128247; 촬영하기</button>
     </div>
+    <input type="file" id="camInput" accept="image/*" capture="environment" style="display:none" onchange="handleImg(this)">
+  </div>
+  <div id="ocrBox" style="display:none" class="sec">
+    <div class="divider" style="margin:0 0 11px"></div>
+    <div class="ocr-box">
+      <div class="ocr-lbl">인식된 텍스트</div>
+      <div class="ocr-raw" id="ocrRaw"></div>
+      <div class="tokens" id="ocrTokens"></div>
+    </div>
+    <div style="margin-top:9px">
+      <div class="sec-title" style="margin-bottom:7px">검색어 수정 가능</div>
+      <div class="search-wrap">
+        <span class="search-ic">&#128269;</span>
+        <input type="text" id="ocrSI" placeholder="인식된 텍스트로 자동 검색됩니다" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="onOcrSearch()" onkeydown="if(event.key==='Enter')onOcrSearch()">
+        <div class="search-clear" id="ocrClear" onclick="clearOcr()">&#10005;</div>
+      </div>
+    </div>
+  </div>
+  <div class="sec"><div class="sec-title">검색 결과</div><div id="scanRA">
+    <div class="empty"><div class="em-ic">&#128247;</div><div class="em-title">사진을 찍어보세요</div><div class="em-desc">NC-T4217WRX 같은<br>모델명이 보이도록 찍으면<br>자동으로 재고를 찾아드립니다</div></div>
+  </div></div>
+</div>
 
-    <script>
-        let inventoryData = [];
+<div class="page" id="page-hist">
+  <div class="sec"><div class="sec-title">검색 기록</div>
+    <div style="background:var(--s1);border:1px solid var(--b1);border-radius:14px;overflow:hidden" id="histCard">
+      <div class="empty"><div class="em-ic">&#128336;</div><div class="em-title">기록 없음</div></div>
+    </div>
+  </div>
+  <div class="sec"><button class="btn" style="background:rgba(248,113,113,.09);border:1px solid rgba(248,113,113,.2);color:var(--danger)" onclick="clearHist()">&#128465; 기록 전체 삭제</button></div>
+</div>
 
-        // 엑셀 로드
-        document.getElementById('excel-file').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            document.getElementById('excel-status').innerText = "⏳ 엑셀 분석 중...";
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                    inventoryData = XLSX.utils.sheet_to_json(worksheet);
-                    document.getElementById('excel-status').innerHTML = `✅ <b>로드 완료:</b> 총 ${inventoryData.length}개 품목`;
-                } catch (error) {
-                    document.getElementById('excel-status').innerText = "❌ 엑셀 파일 읽기 실패";
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        });
-
-        // [신규] 수동 검색 버튼 이벤트
-        document.getElementById('manual-search-btn').addEventListener('click', function() {
-            const query = document.getElementById('manual-search-input').value.trim();
-            if (!query) {
-                alert("검색할 모델명을 입력해 주세요.");
-                return;
-            }
-            document.getElementById('ocr-status').innerHTML = "⚙️ <b>수동 검색 처리 중...</b>";
-            // 사진 미리보기 초기화
-            document.getElementById('preview').style.display = 'none';
-            
-            searchInventory(query, true); // 수동 검색 플래그 true
-        });
-
-        // 엔터키 쳐도 검색되게 설정
-        document.getElementById('manual-search-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('manual-search-btn').click();
-            }
-        });
-
-        // 카메라 촬영 및 OCR
-        document.getElementById('camera-input').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const preview = document.getElementById('preview');
-            preview.src = URL.createObjectURL(file);
-            preview.style.display = 'block';
-
-            const ocrStatus = document.getElementById('ocr-status');
-            ocrStatus.innerHTML = "🔄 <b>글자 판독 중...</b> (3~5초 소요)";
-
-            Tesseract.recognize(file, 'eng+kor')
-            .then(({ data: { text } }) => {
-                ocrStatus.innerHTML = "✅ <b>판독 완료</b>";
-                searchInventory(text, false); // 자동 OCR 검색
-            }).catch(err => {
-                ocrStatus.innerHTML = "❌ <b>인식 오류 발생</b>";
-            });
-        });
-
-        // 통합 검색 로직 (스마트 검색)
-        function searchInventory(inputText, isManual = false) {
-            const resultBox = document.getElementById('result-box');
-            
-            // 특수문자, 공백을 모두 제거하여 매칭 확률 극대화
-            const cleanInput = inputText.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-
-            if (!cleanInput || cleanInput.length < 2) {
-                resultBox.innerHTML = `❌ <b>검색 실패:</b> 입력하거나 인식된 텍스트가 너무 짧거나 유효하지 않습니다.<br><br>[내용]: "${inputText.trim()}"`;
-                return;
-            }
-
-            // 엑셀 데이터 안에서 검색어 매칭행 찾기
-            const matchedItems = inventoryData.filter(item => {
-                return Object.values(item).some(val => {
-                    if (!val) return false;
-                    const strVal = String(val).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-                    // 엑셀 셀 내용이 검색어에 포함되거나, 검색어가 엑셀 셀 내용에 포함되는지 상호 대조
-                    return strVal.length > 1 && (cleanInput.includes(strVal) || strVal.includes(cleanInput));
-                });
-            });
-
-            // 결과 화면 표시
-            if (matchedItems.length > 0) {
-                const methodTitle = isManual ? `✍️ 수동 검색 결과` : `📸 카메라 분석 결과`;
-                let html = `🎯 <b>${methodTitle} 매칭 성공! (${matchedItems.length}건)</b><br><br>`;
-                
-                matchedItems.forEach((item, index) => {
-                    html += `<div class="item-block">`;
-                    html += `<div class="item-title">품목 정보 ${index + 1}</div>`;
-                    for (const [key, value] of Object.entries(item)) {
-                        // 엑셀 빈 열(__EMPTY)은 화면에서 숨김 처리
-                        if(!key.includes('__EMPTY')) { 
-                            html += `• <b>${key}:</b> ${value}<br>`;
-                        }
-                    }
-                    html += `</div>`;
-                });
-                resultBox.innerHTML = html;
-                if(isManual) document.getElementById('ocr-status').innerHTML = "✅ <b>검색 완료</b>";
-            } else {
-                resultBox.innerHTML = `🔍 <b>입력/인식된 글자:</b>\n"${inputText.trim()}"\n\n❌ <b>일치하는 재고 없음:</b> 해당 텍스트와 일치하는 품목을 엑셀에서 찾지 못했습니다.`;
-                if(isManual) document.getElementById('ocr-status').innerHTML = "❌ <b>검색 결과 없음</b>";
-            }
-        }
-    </script>
+</div></div>
+<script>
+const INV=[{"p":"단종","m":"SNV-8081R","o":1,"f":0},{"p":"2M AHD IR 하우징형","m":"HCB-2020RH","o":0,"f":0},{"p":"2M AHD BOX","m":"HCB-6000","o":0,"f":0},{"p":"2M AHD차량번호식별카메라","m":"HCR-6001RH 단종","o":0,"f":0},{"p":"2M AHD","m":"HCD-6010 (2.8mm)","o":0,"f":7},{"p":"2M AHD","m":"HCD-6020R","o":0,"f":24},{"p":"2M AHD","m":"HCO-6020R","o":4,"f":47},{"p":"2M AHD","m":"HCD-6080R(3.2~10MM)","o":0,"f":0},{"p":"2M AHD","m":"HCO-6080R (3.2-10mm)","o":0,"f":0},{"p":"2M AHD","m":"HCV-6080R","o":0,"f":0},{"p":"2M ZOOM BOX","m":"HCZ-6300","o":0,"f":0},{"p":"4M AHD","m":"HCD-7010R(2.8mm)단종","o":2,"f":0},{"p":"4M AHD","m":"HCD-7010RA(2.8mm)","o":0,"f":0},{"p":"4M AHD","m":"HCD-7020R(3.6mm)단종","o":1,"f":0},{"p":"4M AHD","m":"HCD-7020RA(4mm)","o":2,"f":0},{"p":"4M AHD","m":"HCD-7070R(3.2~10mm)17년생산","o":1,"f":0},{"p":"4M AHD","m":"HCD-7070RA","o":3,"f":0},{"p":"4M AHD","m":"HCO-7010RA(2.8mm)","o":0,"f":0},{"p":"4M AHD","m":"HCO-7020RA(4mm)","o":0,"f":0},{"p":"AHD 4M","m":"HCO-7070RA(3.2~10mm)","o":0,"f":0},{"p":"AHD 4M","m":"HCB-7000A","o":2,"f":0},{"p":"팬타브리드","m":"HRX-434 (2TB)   1SATA","o":9,"f":0},{"p":"팬타브리드","m":"HRX-435 (2TB)   2SATA","o":0,"f":0},{"p":"팬타브리드","m":"HRX-835 (3TB)   4SATA","o":9,"f":0},{"p":"팬타브리드","m":"HRX-1634 (4TB)  2SATA","o":17,"f":0},{"p":"팬타브리드","m":"HRX-1635(4TB)   8SATA","o":5,"f":0},{"p":"","m":"SBP-300WMW1","o":0,"f":0},{"p":"","m":"SBP-300CM","o":0,"f":0},{"p":"","m":"SBP-300PMW1","o":0,"f":0},{"p":"","m":"SBP-300PMW2","o":0,"f":0},{"p":"","m":"SBP-125WMW1","o":0,"f":0},{"p":"걸이용 마운트 (PLUS용)","m":"SBP-156HMW","o":0,"f":11},{"p":"","m":"SBP-300HM5","o":0,"f":0},{"p":"PLUS용/벽부형/신형카메라용","m":"SBP-156WMW","o":0,"f":2},{"p":"","m":"SBP-301HM5","o":1,"f":0},{"p":"반달돔카메라플랜지 QNV-C8083R","m":"SBP-140HMW","o":0,"f":0},{"p":"브라켓","m":"STB-401","o":1,"f":0},{"p":"하우징","m":"SHP-1680F","o":0,"f":0},{"p":"","m":"STH-500","o":0,"f":0},{"p":"","m":"MHG-200B","o":0,"f":0},{"p":"","m":"MHG-200HB","o":0,"f":0},{"p":"IP ZOOM","m":"XNZ-L6320A","o":0,"f":0},{"p":"화재 감지 Bi-spectrum 열화상 카메라","m":"TNM-C2722TDR","o":0,"f":0},{"p":"(2M)차량번호식별","m":"XNO-6090RH","o":0,"f":0},{"p":"(X4.3)","m":"XNP-6040H","o":0,"f":4},{"p":"(X12)","m":"XNP-6120H","o":0,"f":0},{"p":"(X25)IR","m":"XNP-L6252R","o":0,"f":0},{"p":"(X32)IR","m":"XNP-L6322R","o":0,"f":15},{"p":"(X34)IR","m":"XNP-6341RH","o":0,"f":0},{"p":"(X40)IR","m":"XNP-6400R","o":0,"f":0},{"p":"(X40)IR와이퍼","m":"XNP-6400RW","o":0,"f":12},{"p":"(X55)","m":"XNP-6550RH","o":0,"f":2},{"p":"CRM","m":"XNP-6120HG","o":0,"f":0},{"p":"CRM","m":"KNP-2550RHG","o":0,"f":0},{"p":"CRM","m":"XNP-6320HS (SUS)","o":0,"f":0},{"p":"","m":"QNO-C8023R","o":0,"f":0},{"p":"TTA","m":"QND-6012RG","o":0,"f":22},{"p":"TTA","m":"QNO-6012RG","o":0,"f":38},{"p":"TTA","m":"KN0-2010RG","o":0,"f":0},{"p":"TTA","m":"QNV-6012RG","o":0,"f":0},{"p":"TTA","m":"QNO-6082RG","o":0,"f":7},{"p":"TTA","m":"QND-8010RG","o":0,"f":5},{"p":"TTA","m":"QN0-8010RG","o":0,"f":0},{"p":"TTA","m":"ERN-K1620SG (4TB)단종","o":0,"f":0},{"p":"TTA","m":"XRN-K820S(4TB) 유통","o":8,"f":0},{"p":"TTA","m":"XRN-K1620SB(12TB)유통","o":5,"f":0},{"p":"TTA","m":"XRN-K3210B4(30TB)프로젝트","o":0,"f":0},{"p":"TTA","m":"XRN-K6410RB2 (60TB)프로젝트","o":0,"f":0},{"p":"TTA","m":"QND-6082RG","o":0,"f":14},{"p":"TTA","m":"XND-6080RG","o":0,"f":7},{"p":"TTA","m":"XNO-6080RG","o":0,"f":1},{"p":"TTA","m":"XNO-6085RG","o":0,"f":0},{"p":"TTA","m":"XNO-6120RG","o":0,"f":0},{"p":"TTA","m":"XNP-L6322RG","o":0,"f":0},{"p":"TTA","m":"XNP-6371RHG (37배)","o":0,"f":1},{"p":"TTA","m":"XNP-C6403RG (40배)","o":0,"f":3},{"p":"TTA 6M","m":"XNP-C8303RWG (30배)","o":1,"f":0},{"p":"TTA 4K","m":"XNP-C9303RWG (30배)","o":1,"f":0},{"p":"2M IP","m":"QND-6012R(2.8mm)","o":0,"f":105},{"p":"2M IP","m":"QND-6011(2.8mm)","o":0,"f":0},{"p":"2M IP","m":"QND-6022R (4mm)","o":0,"f":251},{"p":"2M IP","m":"QND-6082R (3.2-10mm)","o":0,"f":0},{"p":"2M IP","m":"QNO-6012R(2.8mm)","o":0,"f":60},{"p":"2M IP","m":"QNO-6022R(4mm)","o":0,"f":199},{"p":"2M IP","m":"QNO-6030RN(6mm)","o":13,"f":8},{"p":"2M IP","m":"QNO-C6083R","o":0,"f":0},{"p":"2M IP","m":"QNO-6070RN(2.8-12mm)","o":4,"f":0},{"p":"2M IP","m":"QNO-6082R (3.2-10mm)","o":0,"f":0},{"p":"핀홀카메라","m":"XNB-6002","o":0,"f":0},{"p":"핀홀렌즈","m":"SLA-T4680A 핀홀렌즈","o":0,"f":0},{"p":"","m":"SLA-T2480A 핀홀렌즈","o":0,"f":0},{"p":"4M H.265","m":"QNB-7080RH","o":3,"f":0},{"p":"5M IP","m":"QND-8010R(2.8MM)","o":0,"f":34},{"p":"","m":"QND-8020R(4MM)","o":0,"f":34},{"p":"","m":"QND-8030R(6MM)","o":3,"f":0},{"p":"","m":"QND-8080R(3.2-10MM)단종","o":0,"f":0},{"p":"","m":"QNV-C8083R","o":0,"f":0},{"p":"","m":"QNO-8010R(2.8MM)","o":0,"f":0},{"p":"","m":"QNO-8020R(4MM)","o":0,"f":0},{"p":"","m":"QNO-8030R(6MM)","o":0,"f":0},{"p":"","m":"QNO-8080R(3.2-10MM)","o":0,"f":0},{"p":"","m":"QNV-8010R","o":2,"f":0},{"p":"","m":"QNV-8080R","o":0,"f":0},{"p":"2M X시리즈","m":"XND-6010N(2.4mm)","o":0,"f":0},{"p":"","m":"XND-L6020R","o":0,"f":0},{"p":"","m":"XND-6080N(2.8-12mm)","o":0,"f":0},{"p":"","m":"XND-6020R(4mm)","o":0,"f":0},{"p":"","m":"XND-6080R(2.8-12mm)","o":0,"f":0},{"p":"","m":"XNO-6020R (4MM)","o":0,"f":0},{"p":"","m":"XNO-6120RN","o":0,"f":0},{"p":"","m":"XNO-6080RN(2.8-12mm)","o":0,"f":8},{"p":"","m":"XNO-6085R","o":0,"f":0},{"p":"","m":"XNV-6080RN(2.8-12mm)","o":0,"f":0},{"p":"","m":"XNB-6005","o":3,"f":0},{"p":"","m":"XNV-6020R","o":0,"f":0},{"p":"","m":"XND-8080RN(3.9-9.4mm)","o":0,"f":0},{"p":"","m":"XNO-8080R(3.9-9.4mm)","o":0,"f":0},{"p":"","m":"XNV-8080RN(3.9-9.4mm)","o":0,"f":0},{"p":"5M AI IR DOME","m":"QND-C8013R","o":0,"f":0},{"p":"","m":"QND-C8023R","o":0,"f":0},{"p":"AI 4K IR","m":"XND-C9083RV","o":0,"f":0},{"p":"CRM","m":"KND-2080R","o":0,"f":2},{"p":"6M fish eye","m":"XNF-8010R","o":0,"f":0},{"p":"","m":"XNF-9013RV","o":0,"f":0},{"p":"","m":"XRN-426S (SSD 1TB)","o":5,"f":0},{"p":"8M 단종","m":"XRN-410SN(2TB)하드추가x","o":0,"f":0},{"p":"8M","m":"XRN-420S (2TB)하드추가x","o":0,"f":0},{"p":"","m":"XRN-420S (4TB)하드추가x","o":19,"f":0},{"p":"8M","m":"QRN-420S (2TB)단종","o":0,"f":0},{"p":"","m":"QRN-430S (2TB)","o":0,"f":0},{"p":"","m":"QRN-430S (4TB)","o":0,"f":0},{"p":"8M","m":"QRN-820S (3B)단종","o":5,"f":0},{"p":"","m":"QRN-830S (4TB)","o":0,"f":0},{"p":"","m":"QRN-1630S (6TB)","o":3,"f":0},{"p":"","m":"XRN-820S (4TB)","o":18,"f":0},{"p":"8K","m":"XRN-1620B2 (12TB)","o":1,"f":0},{"p":"8K","m":"XRN-1620SB1(6TB)POE","o":0,"f":0},{"p":"6TB*2개내장","m":"XRN-1620SB1(12TB)POE","o":0,"f":29},{"p":"","m":"XRN-3220B2 (30TB)","o":0,"f":0},{"p":"","m":"XRN-2010A(4TB)32CH","o":0,"f":0},{"p":"","m":"XRN-2011A(4TB)32CH","o":0,"f":0},{"p":"서버형NVR36CH","m":"XRP-4110B2(0TB)","o":0,"f":0},{"p":"64CH,H265","m":"XRN-3010(6TB)64CH","o":0,"f":0},{"p":"64CH,H265","m":"XRN-6410B4 (6TB)64CH","o":0,"f":1},{"p":"72CH 서버형","m":"XRP-4210B4","o":0,"f":0},{"p":"32CH AI","m":"PRN-3200B4","o":0,"f":0},{"p":"128CH","m":"PRP-5000H16","o":0,"f":0},{"p":"GPS서버","m":"SSM-ST41","o":1,"f":0},{"p":"ALC 키보드","m":"SPC-1010","o":0,"f":0},{"p":"","m":"SPC-2000","o":0,"f":0},{"p":"NW 키보드","m":"SPC-7000","o":0,"f":0},{"p":"","m":"SPE-110","o":0,"f":0},{"p":"4CH 엔코더","m":"SPE-420","o":0,"f":0},{"p":"16CH 엔코더","m":"SPE-1630","o":0,"f":0},{"p":"디코더","m":"SPD-152","o":0,"f":0},{"p":"UTP RX","m":"THUP-100RX","o":2,"f":0},{"p":"UTP RX","m":"THUP-1600RX","o":4,"f":0},{"p":"POE 스위치(8CH)","m":"SPN-10082P","o":0,"f":1},{"p":"POE 스위치(16CH)","m":"SPN-12162P","o":0,"f":0},{"p":"POE 스위니(24CH)","m":"SPN-12242P","o":0,"f":0},{"p":"한화테크윈","m":"2TB(SPZ-2200) WD","o":5,"f":0},{"p":"한화테크윈","m":"2TB(SPZ-2200) ST","o":1,"f":0},{"p":"한화테크윈","m":"4TB(SPZ-4302TS)ST","o":2,"f":0},{"p":"한화테크윈","m":"6TB(SPZ-6303TS)ST시게이트","o":8,"f":0},{"p":"한화테크윈","m":"8TB(SPZ-8302TW)wd","o":13,"f":0},{"p":"한화테크윈","m":"10TB (SPZ-10300TW)","o":26,"f":0},{"p":"2M TVI,SD","m":"MTC2210DR(4mm)","o":0,"f":54},{"p":"2M TVI","m":"MTC2230BR (4mm)","o":0,"f":89},{"p":"TVI,AHD, SD","m":"HC-D4221RX(2.8~12mm)1HD,1SD BNC","o":0,"f":100},{"p":"TVI,AHD,SD","m":"HC-T4221WRX(2.8-12mm)1HD,1SD BNC","o":0,"f":69},{"p":"2M 핀홀","m":"TC-V5211X 2.4mm","o":2,"f":20},{"p":"핀홀","m":"SYS-P200","o":1,"f":0},{"p":"TVI BOX (AHD,SD)","m":"HC-B4201X (특별가)","o":0,"f":0},{"p":"5M TVI","m":"TC-D4511RX(4mm)","o":0,"f":33},{"p":"5M TVI,AHD,SD","m":"TC-D5511RX(2.8mm)","o":0,"f":0},{"p":"5M TVI","m":"TC-E4511WRX(4mm)","o":0,"f":2},{"p":"5M TVI","m":"TC-D5531RX (3-13.5mm)","o":0,"f":32},{"p":"5M TVI","m":"HC-T4531WRX","o":0,"f":0},{"p":"5M TVI","m":"TC-T5531WRX (3-13.5mm)","o":0,"f":14},{"p":"HD-SDI웹게이트","m":"K1080BL-IR36(3.6mm)","o":1,"f":0},{"p":"5M DVR HDMI VGA 1BNC(SPOT)","m":"HR1504 (2TB)1HDMI,1VGA,1BNC(Spot)","o":0,"f":25},{"p":"","m":"HR1504 (4TB)","o":0,"f":175},{"p":"5M DVR","m":"HR2504 (2TB)","o":0,"f":1},{"p":"5M SD,AHD,TVI","m":"HR1508(2TB)NOvga hdmi,bnc(spot)","o":0,"f":23},{"p":"","m":"HR1508(4TB)에스에스오트론","o":0,"f":0},{"p":"5M DVR","m":"HR2508 (2TB)","o":0,"f":6},{"p":"5M DVR/단종","m":"HR4508 단종(4TB) 2U 1HDMI,1VGA,1BNC(Spot)","o":0,"f":0},{"p":"SI","m":"TR0845","o":0,"f":0},{"p":"5M DVR","m":"TR1625 (4TB)1U","o":0,"f":0},{"p":"","m":"HR2516 (4TB)1U","o":0,"f":20},{"p":"5M DVR 유통","m":"HR-4516(4TB)","o":0,"f":0},{"p":"5M DVR","m":"TR-S4516 (4TB)1HDMI,1VGA,1BNC(Spot)","o":0,"f":24},{"p":"하이브리드","m":"TR-0426 2TB(동축4ch,IP2ch)","o":0,"f":3},{"p":"하이브리드","m":"TR-0826 2TB(동축8ch,IP4ch)","o":0,"f":1},{"p":"하이브리드","m":"TR-1626 2TB(동축16ch,IP8ch)","o":0,"f":3},{"p":"2M DOME/SI마이크로","m":"DC-D1142CRX(2.8MM)","o":0,"f":87},{"p":"2M DOME/총판마이크로","m":"NC-D4211CRX(2.8mm)","o":0,"f":14},{"p":"ONVIF전용5M","m":"DC-D1145RX(2.1mm)","o":0,"f":0},{"p":"2M DOME","m":"DC-S4217DRX(2.8mm)","o":0,"f":122},{"p":"2M DOME 일반유통","m":"NC-D4217RX(2.8mm)","o":0,"f":2},{"p":"2M DOME SI","m":"DC-D1742RX(2.8mm)","o":0,"f":0},{"p":"2M DOME SI","m":"DC-D1742RX(4mm)","o":2,"f":0},{"p":"2M DOME","m":"DC-S4217DRX(4mm)","o":0,"f":39},{"p":"","m":"NC-D4217RX(4mm)","o":0,"f":22},{"p":"2M DOME 암바렐라칩","m":"DC-S4216DRX (2.8mm)","o":0,"f":112},{"p":"2M DOME 암바렐라칩","m":"NC-D4216RX-A (2.8mm)","o":0,"f":9},{"p":"","m":"DC-D1642RX (2.8mm)","o":1,"f":0},{"p":"2M DOME 암바렐라칩","m":"DC-S4216DRX (4mm)","o":0,"f":98},{"p":"2M DOME 암바렐라칩","m":"DC-S4236DRX (오디오)","o":0,"f":95},{"p":"2M DOME 암바렐라칩","m":"NC-D4236RX-A(2.8-12mm)","o":0,"f":0},{"p":"2M DOME 암바렐라칩","m":"NC-D4236RX","o":0,"f":0},{"p":"2M DOME 암바렐라칩 si","m":"DC-D3642RX-A","o":0,"f":0},{"p":"2M 반달돔/유통","m":"NC-D3233HRXL (라이트마스터)","o":0,"f":3},{"p":"2M 반달DOME 암바렐라칩","m":"DC-D3642HRX-A(반달돔 2.8-12mm)","o":0,"f":6},{"p":"2M BULLET","m":"DC-S4217TWRX(4mm)","o":0,"f":124},{"p":"2M BULLET","m":"NC-T4217WRX(4mm)","o":0,"f":94},{"p":"2M BULLET","m":"DC-T1742WRX(4mm)","o":0,"f":7},{"p":"2M BULLET","m":"NC-T4217WRX(2.8mm)","o":0,"f":88},{"p":"2M BULLET 암바렐라칩","m":"DC-S4216TWRX(4mm)","o":0,"f":0},{"p":"2M BULLET SI","m":"DC-T1642WRX(4mm)","o":0,"f":5},{"p":"2M BULLET 암바렐라칩","m":"DC-S4216TWRX(2.8mm)","o":0,"f":44},{"p":"2M BULLET 암바렐라칩","m":"NC-T4216WRX(2.8mm)","o":0,"f":0},{"p":"2M AI BULLET","m":"DC-T1842WRA(2.8mm)","o":0,"f":1},{"p":"2M AI BULLET","m":"DC-T1842WRA(4mm)","o":0,"f":4},{"p":"2M BULLET 암바렐라칩","m":"DC-S4236THRX","o":0,"f":112},{"p":"","m":"DC-T3642HRX (SI)","o":0,"f":8},{"p":"","m":"NC-T4236HRX","o":0,"f":0},{"p":"2M 암바렐라칩","m":"DC-T3642WRX 단종 (2.8-12mm)","o":0,"f":0},{"p":"2M BULLET/단종","m":"DC-T3362HRXL(4.4-10mm)라이트마스터","o":0,"f":5},{"p":"8M BULLET/저조도 특화 STARVIS-2센서탑재","m":"DC-T6830WRX","o":1,"f":0},{"p":"차량번호인식카메라","m":"DC-T2362HRL (12-50mm)","o":0,"f":5},{"p":"주차차단기 특화 MFZ 번호인식 카메라","m":"DC-G3162L","o":0,"f":0},{"p":"AI 5M IR DOME","m":"DC-D3745HRXA","o":0,"f":15},{"p":"AI 5M IR 뷸렛","m":"DC-T3845WRA(2.7-13.5)","o":0,"f":0},{"p":"AI 2MP Dome","m":"DC-D3842HRA(2.7-12MM)라이트마스터","o":0,"f":0},{"p":"AI 2MP Bullet","m":"DC-T3842HRA(2.8-12mm)라이트마스터","o":0,"f":4},{"p":"AI 6MP 프리미엄 Dome","m":"DC-D3166WRA(4.3-9.8mm)","o":0,"f":5},{"p":"AI 6MP 프리미엄 Bullet","m":"DC-T3166WRA(4.3-9.8mm)","o":0,"f":7},{"p":"AI 8MP Dome","m":"DC-D3168WRA(4.3-9.8mm)","o":0,"f":5},{"p":"AI 8MP Bullet","m":"DC-T3168WRA(4.3-9.8mm)","o":0,"f":5},{"p":"TTA2M DOME","m":"DC-D4216RXT(4mm)","o":0,"f":108},{"p":"","m":"DC-D4216RXT(2.8mm)","o":1,"f":767},{"p":"학교 면담실","m":"DC-D4236RXT/ TTA","o":0,"f":34},{"p":"TTA2M DOME","m":"DC-D4238HRAT (라이트마스터)","o":0,"f":15},{"p":"TTA 2M BULLET","m":"DC-T4216WRXT TTA","o":0,"f":30},{"p":"TTA 2M BULLET","m":"DC-T3642HRXT(TTA)","o":0,"f":35},{"p":"TTA 2M BULLET","m":"DC-T4238HRAT (라이트마스터)2.8-12MM","o":0,"f":8},{"p":"TTA 5M 반달dome","m":"DC-D4516WRXT (4mm)","o":0,"f":45},{"p":"","m":"DC-D4516WRXT (2.8mm)","o":0,"f":11},{"p":"TTA 5M buLLET","m":"DC-T4516WRXT (2.8mm)","o":0,"f":27},{"p":"TTA 5M buLLET","m":"DC-T4516WRXT (4mm)","o":0,"f":79},{"p":"TTA 5M dome no오디오","m":"DC-D4536RX-AT (3.3-13.5mm) 단종","o":0,"f":1},{"p":"TTA 5M 반달dome no오디오","m":"DC-D4536HRXT(3-13.5mm)","o":0,"f":30},{"p":"TTA 5M BULLET no오디오","m":"DC-T4536HRX-AT(3.3-13.5mm)","o":0,"f":17},{"p":"TTA 5M BULLET no오디오","m":"DC-T4536HRXT(3.3-13.5mm)","o":0,"f":23},{"p":"AI 6MP Bullet","m":"DC-T6631WRAT(4.3-9.8mm)","o":0,"f":0},{"p":"TTA 8M 반달DOME","m":"DC-D4831HRXT(2.7-13.5mm)","o":0,"f":12},{"p":"TTA 8M BULLET","m":"DC-T4831HRXT(2.7-13.5mm)","o":0,"f":7},{"p":"TTA 8M22배줌뷸렛","m":"DC-T8871WRAT(9.9~217.09mm)","o":0,"f":0},{"p":"TTA 어안","m":"DC-Y6C16WRXT (TTA)","o":0,"f":17},{"p":"TTA 2M PTZ","m":"DC-S6261XT","o":0,"f":4},{"p":"","m":"DC-S6281HXT","o":0,"f":0},{"p":"TTA X36 2M IR PTZ","m":"DC-S6283HRXLT(TTA)","o":0,"f":0},{"p":"TTA X36 2M IR PTZ","m":"DC-S6286HRXLT (TTA)","o":0,"f":9},{"p":"TTA X36 4M IR PTZ 라이트마스터","m":"DC-S6481HRAT","o":0,"f":0},{"p":"TTA X31 4K IR PTZ","m":"DC-S6881HRXT /단종","o":0,"f":4},{"p":"TTA 4CH/경원아이씨티입고","m":"DR-2504PT/선거,면담실","o":0,"f":43},{"p":"TTA 16CH","m":"DR-6516PT","o":0,"f":4},{"p":"TTA 32CH","m":"DR-6532PT","o":0,"f":7},{"p":"TTA 64CH","m":"IR-310D-AT","o":0,"f":1},{"p":"TTA 16CH/단종","m":"DR-6316PS(4TB)TTA","o":0,"f":0},{"p":"TTA 32CH/단종","m":"DR-6332PS(4TB)TTA","o":0,"f":0},{"p":"TTA 64CH/단종","m":"IR300T (TTA)0TB","o":0,"f":0},{"p":"ZOOM (X33)SI","m":"DC-Z6282X(NC-Z420-1Z1)","o":0,"f":2},{"p":"ZOOM(X36)","m":"DC-Z6281XL","o":0,"f":8},{"p":"2M BOX  라이트마스터","m":"NC-B6206XL","o":0,"f":30},{"p":"2M BOX si 라이트마스터 설계모델","m":"DC-B0662XL","o":0,"f":0},{"p":"5M BOX","m":"DC-B0145X","o":0,"f":17},{"p":"핀홀카메라","m":"DC-V1142XJ (2.4mm)SI 보드렌즈타입","o":0,"f":0},{"p":"핀홀카메라","m":"NC-V4212XJ (2.4mm)","o":0,"f":8},{"p":"핀홀카메라(총판)","m":"NC-V4212XJ (4.3mm)","o":0,"f":25},{"p":"핀홀카메라","m":"DC-V1242XJ-A(4.3mm)","o":1,"f":0},{"p":"불꽃감지카메라","m":"DC-SP6211FLT (3.6mm)","o":0,"f":9},{"p":"5M 불꽃","m":"DC-SP6512FLT (2.8mm)","o":0,"f":5},{"p":"열화상카메라","m":"DC-TH2011-A08","o":0,"f":0},{"p":"5M열화상카메라","m":"DC-TH2012WR","o":0,"f":0},{"p":"5M열화상카메라","m":"DC-TH2015WR (SI)","o":0,"f":27},{"p":"5M fish eye 어안","m":"NC-Y6516WRX(1.5mm)","o":0,"f":7},{"p":"5M fish eye 어안","m":"DC-Y1665WRX","o":0,"f":0},{"p":"12M fish eye","m":"NC-Y6C16WRX","o":0,"f":14},{"p":"12M fish eye","m":"NC-Y6C16WRX-A","o":0,"f":0},{"p":"12M fish eye","m":"DC-Y166CWRX","o":0,"f":9},{"p":"차량번호인식/ 2M","m":"DC-T2262HRL 단종예정","o":0,"f":0},{"p":"차량번호인식","m":"MNC-4295BR 단종","o":1,"f":0},{"p":"5M DOME  암바렐라","m":"DC-S4516DWRX(4mm)","o":0,"f":54},{"p":"5M DOME  암바렐라","m":"NC-D4516WRX-A(4mm)","o":0,"f":1},{"p":"5M DOME  암바렐라","m":"NC-D4516WRX(2.8mm)","o":0,"f":16},{"p":"SI모델","m":"DC-D1645WRX(2.8mm)","o":0,"f":3},{"p":"","m":"DC-D1645WRX(4mm)","o":0,"f":10},{"p":"POE 익스텐더","m":"DC-D1745RXP(4.3mm)","o":1,"f":0},{"p":"POE 익스텐더","m":"DC-D1745RXP(2.8mm)","o":0,"f":6},{"p":"5M DOME 단종","m":"NC-D4533RX(3-13.5mm)DC-S5520DR","o":1,"f":0},{"p":"5M 일반돔","m":"DC-D3645RX","o":0,"f":15},{"p":"5M 반달 DOME/암바렐라8m칩","m":"DC-S4535DHRX-A(4-14mm)","o":2,"f":29},{"p":"5M 반달 DOME/암바렐라","m":"DC-S4536DHRX-A(3-13.5mm)","o":0,"f":0},{"p":"5M 반달 DOME/암바렐라","m":"DC-S4536DHRX(3-13.5mm)","o":0,"f":66},{"p":"5M DOME 단종","m":"MNC-5520DR (3.6-10MM)","o":5,"f":0},{"p":"5M BULLET(5M칩)","m":"DC-S4516TWRX(4mm)","o":0,"f":47},{"p":"","m":"NC-T4516WRX(4Mmm)","o":0,"f":0},{"p":"5M BULLET SI","m":"DC-T1645WRX(4mm)","o":0,"f":29},{"p":"","m":"DC-T1645WRX(2.8mm)","o":0,"f":3},{"p":"5M BULLET","m":"NC-T4516WRX(2.8mm)","o":0,"f":13},{"p":"5M BULLET(익스텐더)","m":"DC-T1745WRXP-A(2.8mm)","o":0,"f":1},{"p":"5M BULLET(익스텐더)","m":"DC-T1745WRXP-A(4.3mm)","o":4,"f":0},{"p":"5M BULLET/암바렐라","m":"DC-S4536THRX(3-13.5MM)","o":0,"f":21},{"p":"5M 유통","m":"NC-T4536HRX (3-13.5mm)","o":0,"f":10},{"p":"si모델","m":"DC-T3645HRX","o":0,"f":0},{"p":"8M 반달DOME","m":"DC-S4811DWRX-A (3.3mm)","o":0,"f":0},{"p":"","m":"NC-D4811WRX (3.3mm)","o":0,"f":14},{"p":"8M 반달DOME","m":"DC-S4831DHRX(2.7-13.5MM)","o":0,"f":41},{"p":"8M BULLET","m":"DC-S4811TWRX-A (3.3mm)","o":0,"f":70},{"p":"8M BULLET/단종","m":"DC-S4831THRX(2.7-13.5MM)","o":0,"f":0},{"p":"8M BULLET","m":"NC-T4831HRX","o":0,"f":1},{"p":"8M BULLET","m":"DC-T3148HRX","o":0,"f":3},{"p":"8M 22배 AIIR 줌뷸렛 카메라","m":"DC-T7188WRA (22배)","o":0,"f":5},{"p":"X12 2M 미니SI","m":"DC-S6162X","o":0,"f":6},{"p":"X12 2M 미니","m":"NC-S6261X","o":0,"f":3},{"p":"X30 2M 매립","m":"NC-S3283FX(MNC-5280SF)","o":0,"f":0},{"p":"X30 2M 매립","m":"NC-S3283FX-A 단종예정","o":0,"f":0},{"p":"X30 2M 매립","m":"NC-S6281FX","o":0,"f":6},{"p":"X30 2M","m":"NC-S3283WHX(MNC-5280SH)","o":0,"f":0},{"p":"X30 2M SI","m":"DC-S8332WHX","o":0,"f":0},{"p":"X30 2M SI","m":"DC-S8162HX","o":0,"f":0},{"p":"X30 2M","m":"NC-S6281HX","o":0,"f":12},{"p":"X36 2M IR단종","m":"NC-S6283HRXL(6~216mm)","o":0,"f":0},{"p":"x36 2M IR SI","m":"DC-S8362HRXL","o":0,"f":0},{"p":"x36 2M IR 암바렐라","m":"DC-S8662HRXL","o":0,"f":1},{"p":"x36 2M IR 암바렐라","m":"NC-S6286HRXL","o":0,"f":5},{"p":"X21 5M IR 미니21배","m":"DC-S6145WRA","o":0,"f":3},{"p":"x36 4M AI IR","m":"DC-S8164HRA (AI)","o":0,"f":10},{"p":"X40 4K AI IR PTZ","m":"DC-S8368WRA","o":0,"f":2},{"p":"X31 5M IR","m":"DC-S8335HRX 단종예정","o":0,"f":0},{"p":"X31 5M IR","m":"NC-S3583HRX-A 단종","o":0,"f":7},{"p":"X31 6M IR 총판","m":"NC-S6681HRX /단종예정","o":0,"f":0},{"p":"X31 6M IR 총판","m":"NC-S6681HRX-A/단종예정","o":0,"f":2},{"p":"X31 6M IR 총판","m":"NC-S6682WR","o":0,"f":0},{"p":"X31 8M IR","m":"NC-S3883HRX-A/DC-S3883HRX-A /DC-S8338HRX-A 단종예정","o":0,"f":0},{"p":"X31 8M IR","m":"NC-S6882WR","o":0,"f":3},{"p":"X31 8M IR","m":"NC-S6881HRX /단종","o":0,"f":0},{"p":"SI","m":"DC-S8268WR","o":0,"f":0},{"p":"X31 8M SI","m":"DC-S8168HRX-A 설계가반영","o":0,"f":0},{"p":"4K NVR","m":"DC-S8168HRX-A 설계가반영","o":0,"f":0},{"p":"","m":"NR-1504P-A          35w","o":87,"f":0},{"p":"4K NVR","m":"DR-0425P","o":0,"f":0},{"p":"4K NVR 30W","m":"DR-S2504P(2TB)노바텍칲 30W","o":0,"f":0},{"p":"4K NVR 50W","m":"DR-S2504P-B(2TB)50W 카메라전원공급","o":1,"f":63},{"p":"5M NVR","m":"DR-S1508P(2TB)    50w","o":0,"f":0},{"p":"5M NVR","m":"NR-1508P        50w","o":79,"f":0},{"p":"4K 8CH 50W","m":"DR-S2508P (2TB)","o":0,"f":0},{"p":"신제품 100W","m":"DR-S2508P-A","o":0,"f":73},{"p":"4K NVR (8POE)","m":"NR-2316P (4TB)","o":0,"f":0},{"p":"4K NVR (8POE)","m":"DR-1625P(2TB)SI노바텍","o":0,"f":4},{"p":"4K 16CH NVR","m":"DR-S3516P (4TB)노바텍칲 120w","o":0,"f":0},{"p":"4K 16CH NVR","m":"NR-3516P (4TB)노바텍칲","o":0,"f":0},{"p":"4K 16CH NVR","m":"DR-S3516P-A    130w","o":0,"f":16},{"p":"4K 16CH NVR","m":"DR-S6516P(4TB)인텔칲","o":0,"f":0},{"p":"","m":"DR-S6516P-A(4TB)","o":0,"f":19},{"p":"4K 16CH NVR","m":"NR-6516P-A(4TB)인텔칲","o":0,"f":0},{"p":"4K 16CH NVR","m":"DR-1663PS-SA (0TB)","o":0,"f":0},{"p":"4K 16CH NVR","m":"DR-1665P (특별가)","o":0,"f":8},{"p":"4K 32CH NVR","m":"DR-S6532P(4TB)인텔칩 120w","o":0,"f":0},{"p":"","m":"DR-S6532P-A      200w","o":0,"f":13},{"p":"일반유통모델","m":"NR-6532P (4TB)","o":0,"f":0},{"p":"32CH","m":"IX832 =IR100 (32ch)15TB","o":0,"f":0},{"p":"32CH슬림/설계 서버형","m":"IR-310 슬림(0TB)10세대i5","o":0,"f":4},{"p":"","m":"PR-310 슬림(0TB) i5","o":0,"f":2},{"p":"64CH스텐다드/슬림","m":"PR-310D스텐다드(0TB) i5","o":0,"f":4},{"p":"64CH스텐다드/슬림 SI","m":"IR-310D (0TB)스탠다드","o":0,"f":0},{"p":"64CH스텐다드/슬림 SI","m":"IR-310D (24TB)스탠다드","o":0,"f":0},{"p":"64CH플래티넘/슬림","m":"IR310D-A/ 플래티넘/0TB/10세대 i7","o":0,"f":3},{"p":"64CH플래티넘/슬림","m":"IR310D-B 플래티넘/0TB/10세대 i7","o":0,"f":1},{"p":"64CH 유통","m":"NR-8564 (8TB) 4TB*2개","o":0,"f":2},{"p":"64CH SI","m":"DR-6485 (8TB) SI","o":0,"f":1},{"p":"64CH SI듀얼파워","m":"DR-6485D (0TB) SI","o":0,"f":2},{"p":"64CH SI듀얼파워","m":"DR-6485D (24TB) SI","o":0,"f":1},{"p":"위브키","m":"위브키 16ch","o":8,"f":0},{"p":"위브키","m":"위브키 32ch","o":5,"f":0},{"p":"위브키","m":"위브키 48ch","o":0,"f":0},{"p":"위브키","m":"위브키 64ch","o":34,"f":0},{"p":"위브키","m":"16ch 아이넥스(완제품=박스포장)","o":0,"f":0},{"p":"위브키","m":"32ch 아이넥스(완제품=박스포장)","o":10,"f":0},{"p":"키퍼","m":"프라이버시키퍼(","o":9,"f":0},{"p":"선실드팬던트","m":"선실드+팬던트IDB-221BS","o":0,"f":19},{"p":"선실드","m":"선실드 (221BS)","o":0,"f":0},{"p":"팬던트","m":"팬던트 (221BS)","o":5,"f":0},{"p":"마이크","m":"CM-503NM (미디어랩스)","o":0,"f":0},{"p":"파워앰프","m":"PPA-202","o":0,"f":0},{"p":"플랜즈","m":"플랜즈 마운트(스피드돔연결)","o":8,"f":0},{"p":"마운트","m":"DA-MA2100 12X PTZ(DC-S6162X용),가변반달돔","o":13,"f":0},{"p":"마운트","m":"DA-MA4200 피쉬아이용","o":9,"f":0},{"p":"마운트","m":"DA-MA4300 고정반달돔걸이용","o":8,"f":0},{"p":"벽부형","m":"DA-WM2050 고정,DC-S6162X용가변반달돔,피쉬아이용 벽부형","o":19,"f":0},{"p":"천정형","m":"DA-CM2050 고정,DC-S6162X용가변반달돔,피쉬아이용 벽부형","o":1,"f":0},{"p":"돔매립마운트","m":"DA-FM1500","o":1,"f":0},{"p":"뷸렛용 기둥형 브라겟","m":"DA-LM2000","o":1,"f":0},{"p":"NON IR PTZ 플랜즈 팬던트","m":"DA-BM1100","o":1,"f":0},{"p":"벽부형","m":"벽부형(JP-H-WL/DA-WM1400","o":0,"f":36},{"p":"폴마운트","m":"폴마운트(JP-H-PL)","o":0,"f":8},{"p":"천정형","m":"천정형(DA-CM1500)짧은거15cm","o":0,"f":4},{"p":"천정형","m":"천정형(JP-H-CL)/(DA-CM1300)","o":0,"f":5},{"p":"코너형","m":"코너형(JP-H-CN)","o":0,"f":8},{"p":"POE스피커내장브라켓","m":"DA-WM2200","o":3,"f":24},{"p":"씨앤아이","m":"벤딩형(JT-CM180/JY-180)","o":2,"f":0},{"p":"엔코더","m":"DE-1104(IDE-4000)단종","o":0,"f":0},{"p":"엔코더","m":"IDE-8000 (de-1108)단종","o":0,"f":0},{"p":"엔코더/ AHD TVI 최대5M ,아날로그","m":"DP-DE2108","o":0,"f":8},{"p":"디코더","m":"DD-1216 단종예정","o":0,"f":0},{"p":"디코더","m":"DP-DD1316","o":0,"f":36},{"p":"디코더","m":"FS-1016N","o":0,"f":0},{"p":"VA 박스","m":"DV-1104 (최신녹화기호환안됨)","o":0,"f":0},{"p":"엔코더","m":"HE-1101 단종","o":0,"f":0},{"p":"엔코더(4K지원","m":"DP-HE1201","o":3,"f":82},{"p":"알람박스","m":"AL-1112","o":0,"f":1},{"p":"AI박스(4CH,객체식별) SI","m":"DV-1304 /스탠얼론NVR전용","o":0,"f":0},{"p":"","m":"DV-1304-A","o":0,"f":0},{"p":"컨트롤러","m":"INK-1100","o":4,"f":0},{"p":"삼성pc","m":"삼성(아이디스) DB400T8B-Z50BB","o":0,"f":0},{"p":"수술실관리용서버","m":"HKDI-DP5WCP","o":1,"f":0},{"p":"수술실LED전광판CCTV녹화중","m":"DP-LB1100","o":0,"f":1},{"p":"수술실녹화중버튼","m":"DP-BT1100","o":0,"f":1},{"p":"인젝터(아이피타임)","m":"인젝터_기가 / IP TIME","o":0,"f":0},{"p":"인젝터(넥스트)","m":"NEXT-POE4804J","o":0,"f":0},{"p":"인젝터(넥스트)","m":"NEXT-POE4805JM (POE 30W)","o":0,"f":0},{"p":"인젝터(NST정보통신)","m":"POE인젝터 100Mbps","o":0,"f":0},{"p":"인젝터(솔텍)","m":"SFC501","o":0,"f":0},{"p":"인젝터(솔텍)","m":"SFC501G","o":0,"f":0},{"p":"HUB(8포트)","m":"DH-2010P","o":0,"f":24},{"p":"HUB(8포트)","m":"IDH-0208P","o":0,"f":0},{"p":"HUB(8포트)GIGA POE","m":"DH-2212PF","o":0,"f":29},{"p":"HUB(8포트)SFP스위치허브","m":"DH-2212F","o":0,"f":0},{"p":"HUB(8포트)","m":"IDH-2208F","o":0,"f":0},{"p":"HUB(16포트)","m":"DH-2018P","o":0,"f":10},{"p":"HUB(16포트)","m":"IDH-0216P","o":0,"f":0},{"p":"HUB(24포트) 다산네트웍스","m":"DH-2328PF-A","o":0,"f":13},{"p":"HUB(24포트) 다산네트웍스","m":"D2224GP /다산","o":0,"f":1},{"p":"HUB(24포트)","m":"IDH-4024F","o":0,"f":0},{"p":"HUB(24포트)","m":"DH-2026PF","o":0,"f":9},{"p":"HUB(24포트)GPS","m":"DH-2026PFN/기본케이블 3M (GPS시각동기화)","o":0,"f":3},{"p":"한화비전24포트 POE스위치","m":"SPN-22241P","o":0,"f":0},{"p":"HUB(24포트)엔에스티정보통신","m":"NSH-2128","o":0,"f":0},{"p":"L2스위치HUB(24포트)엔에스티정보통신","m":"NSH-2128P","o":0,"f":0},{"p":"스토리지","m":"IDS-1004-A","o":0,"f":4},{"p":"UTP케이블/\n대륙전선","m":"CAT 5E /대륙전선300M","o":0,"f":0},{"p":"","m":"CAT.6 /대륙전선300M","o":0,"f":0},{"p":"아이디스","m":"2TB (wd)","o":3,"f":0},{"p":"HDD","m":"2TB(시게이트)","o":4,"f":0},{"p":"","m":"2TB(도시바)","o":29,"f":0},{"p":"3TB","m":"3TB (WD)","o":0,"f":0},{"p":"4TB","m":"4TB (WD)","o":0,"f":0},{"p":"4TB","m":"4TB (시게이트)아이디스","o":0,"f":0},{"p":"4TB","m":"4TB (시게이트)스마트정보","o":18,"f":0},{"p":"4TB","m":"4TB (도시바)","o":5,"f":0},{"p":"6TB","m":"6TB (WD)","o":0,"f":0},{"p":"서버형하드","m":"6TB (도시바)7200RPM","o":0,"f":0},{"p":"8TB","m":"8TB (시게이트)단종","o":0,"f":0},{"p":"8TB","m":"8TB (도시바)","o":43,"f":0},{"p":"10TB","m":"10TB (시게이트)","o":2,"f":0},{"p":"10TB","m":"10TB / 도시바","o":57,"f":0},{"p":"12TB","m":"12TB(도시바)","o":37,"f":0},{"p":"","m":"18TB(도시바)","o":14,"f":0},{"p":"EOC/IP LINKER","m":"DA-EC3101TX 단종예정","o":0,"f":0},{"p":"DA","m":"DA-EC3101RX 단종예정","o":0,"f":0},{"p":"인젝터(아이디스)","m":"DA-PI2101 단종","o":0,"f":0},{"p":"POE 리피터","m":"DA-PR1101  단종","o":0,"f":0},{"p":"POE 익스텐더&인젝터","m":"SC-IPE3001","o":7,"f":0},{"p":"POE 리피터(LRP 500M)","m":"DA-LP1101TX","o":0,"f":0},{"p":"POE 리피터(LRP 500M) 주문생산","m":"DA-LP1101RX (56V1.17A)","o":0,"f":0},{"p":"","m":"ENC-8208","o":2,"f":0},{"p":"EOC","m":"ENC-8250 (POE)","o":0,"f":0},{"p":"EOC","m":"SC-IPC07P","o":0,"f":72},{"p":"EOC","m":"SC-IPC07P (NO 아답타)","o":0,"f":19},{"p":"SC","m":"SC-IPC07PU SET","o":0,"f":86},{"p":"","m":"SC-IPC3001E","o":1,"f":0},{"p":"송신기","m":"SC-IPT07P","o":0,"f":0},{"p":"수신반","m":"SC-IPR07P","o":5,"f":0},{"p":"","m":"SC-IPR0704H 박스있음","o":0,"f":0},{"p":"세트","m":"SC-IPC0708H","o":0,"f":0},{"p":"IP장거리송신기","m":"SC-IPT07PU (TX)","o":0,"f":0},{"p":"UTP장거리수신기","m":"SC-IPR0708HU (RX)","o":0,"f":0},{"p":"서지보호기","m":"SC-USP01P","o":5,"f":0},{"p":"","m":"SC-HDT0801S","o":4,"f":0},{"p":"","m":"SC-HDR01S","o":1,"f":0},{"p":"TVI리피터(~800M)AHD TVI","m":"AT/AR-6000SPS(아우라)","o":2,"f":0},{"p":"전원중첩장치","m":"SC-VCP1504","o":2,"f":0},{"p":"HD-SDI UTP 장거리전송 송수신기","m":"SC-UHCP1001D","o":3,"f":0},{"p":"원격관리 S/W","m":"SC-APC08E/SC-CPD08N","o":0,"f":0},{"p":"HD-SDI전원중첩장치","m":"SC-LHCP1001","o":0,"f":0},{"p":"AHD노이즈제거기","m":"SC-NRC01M","o":0,"f":0},{"p":"AHD TVI노이즈제거기","m":"SC-NRC01MA","o":1,"f":0},{"p":"(eoc)","m":"IPT0801","o":0,"f":0},{"p":"IPR","m":"IPR0801","o":0,"f":0},{"p":"4CH IP수신기","m":"IPR-0804P","o":0,"f":0},{"p":"8CH IP수신기","m":"IPR-0808P","o":0,"f":0},{"p":"POE 인젝터","m":"SC-IP3001PSE","o":1,"f":0},{"p":"POE HUB EXTENDER 2:1","m":"SC-IPH3002","o":19,"f":0},{"p":"4IN1OUT POE분배기","m":"SC-IPT3004P","o":4,"f":0},{"p":"UTP RX","m":"SC-MUR16E","o":0,"f":0},{"p":"IP인젝터&익스텐더&스플리터","m":"SC-IPH3002DC","o":3,"f":0},{"p":"TVI,AHD,CVBS UTP 송수신기","m":"SC-MUP01","o":0,"f":0},{"p":"TVI,AHD,CVBS UTP 송수신기","m":"SC-MUP01P8","o":0,"f":0},{"p":"TVI,AHD-UTP송신기","m":"SC-MUTP0801E","o":0,"f":0},{"p":"TVI,AHD-UTP 수신기","m":"SC-MURP0801E","o":4,"f":0},{"p":"TX 송신기","m":"SC-MVTP1001","o":0,"f":0},{"p":"AHD,TVI 전원중첩기","m":"SC-MVCP1001","o":0,"f":0},{"p":"AHD 전원중첩기","m":"SC-MVCP1001A 신제품","o":0,"f":1},{"p":"TVI 전원중첩기","m":"SC-TVCP1001E","o":0,"f":0},{"p":"AHD 전원중첩기","m":"SC-MVCP1008","o":0,"f":0},{"p":"UTP RX","m":"SC-UR0115C","o":4,"f":0},{"p":"정션박스","m":"SC-UPD08","o":0,"f":0},{"p":"","m":"SC-JPT01","o":1,"f":0},{"p":"","m":"SC-JPD04","o":0,"f":0},{"p":"","m":"SC-JPD08","o":0,"f":0},{"p":"","m":"SC-JPD24","o":0,"f":0},{"p":"컨버터(AHD-HD)","m":"SC-MAC02","o":0,"f":0},{"p":"TVITO HDMI","m":"SC-TDR01","o":4,"f":0},{"p":"HD-SDI리피터","m":"SC-HLR02","o":1,"f":0},{"p":"HD-SDI더멀리 영상장거리전송","m":"SC-LHC01B","o":0,"f":0},{"p":"HD-SDI MEDIA컨버터","m":"SC-HDMC01","o":1,"f":0},{"p":"TVIAHD 분배기(1:4)","m":"SC-MA1VDA","o":0,"f":0},{"p":"AHD TVI CVI CVBS 분할기","m":"SC-04MHD","o":0,"f":0},{"p":"AHD TVI CVBS 분할기","m":"SC-16MHD","o":0,"f":0},{"p":"HD 분할기","m":"SC-16HDS","o":0,"f":0},{"p":"멀티휴대용모니터","m":"SC-IPM07PRO","o":0,"f":0},{"p":"수신반","m":"SW-1010C","o":0,"f":0},{"p":"돔브라켓","m":"WM-120","o":9,"f":0},{"p":"돔브라켓","m":"SCB-45HW 화이트","o":0,"f":0},{"p":"천정가변형","m":"DB-600B","o":0,"f":0},{"p":"천정가변,박스형","m":"DCB-600B(2M:상하봉 각1M)","o":0,"f":3},{"p":"","m":"DB-600M 상봉","o":2,"f":0},{"p":"각도기(大)","m":"DB-102","o":2,"f":0},{"p":"각도기(中)","m":"DB-070","o":0,"f":0},{"p":"각도기(小)","m":"J\"용 DB-050 (소형)","o":3,"f":0},{"p":"BRACKET","m":"DB-220M(모자)","o":0,"f":0},{"p":"P/T BRACKET","m":"DB-368PT","o":3,"f":0},{"p":"벽부형","m":"JY-330","o":0,"f":0},{"p":"벽부형(스틸)","m":"DWB-370","o":0,"f":0},{"p":"벽부형(SUS)","m":"DWB-370IRS (뷸렛용)","o":2,"f":0},{"p":"","m":"DSW-370IRS (뷰렛용)","o":1,"f":0},{"p":"벽부뷸렛벤딩","m":"DWB-370IRB (뷸렛벤딩)","o":2,"f":0},{"p":"밴딩(스틸)","m":"DB-370B","o":0,"f":0},{"p":"벽부형(SUS)","m":"DB-370S","o":0,"f":0},{"p":"밴딩(SUS)","m":"DB-370SB","o":0,"f":0},{"p":"한국서지연구소","m":"SL200-PW(전원용)     인증x","o":6,"f":0},{"p":"","m":"SL400-CC(영상)","o":0,"f":0},{"p":"","m":"SL300-21(데이터)","o":1,"f":0},{"p":"","m":"SL200-PV(전원+영상)","o":1,"f":0},{"p":"","m":"SL200-CO(일체형)","o":0,"f":0},{"p":"","m":"SL300-L8(LAN)","o":17,"f":0},{"p":"","m":"SL300-L8(POE)","o":2,"f":0},{"p":"","m":"SL300-LP","o":1,"f":0},{"p":"","m":"SL300-LP8 (전원,LAN)","o":1,"f":0},{"p":"","m":"SB68D-RJ48POE(통신용)","o":8,"f":0},{"p":"파워트로닉스","m":"SGI-220 (전원)","o":2,"f":0},{"p":"","m":"DL-C (영상)","o":0,"f":0},{"p":"","m":"DX-M-T (데이터)","o":1,"f":0},{"p":"","m":"DX-C","o":1,"f":0},{"p":"","m":"DX-RJ45","o":0,"f":0},{"p":"모니터브라켓","m":"LW-100A","o":0,"f":0},{"p":"모니터브라켓","m":"LW-1100","o":0,"f":0},{"p":"","m":"HDMI케이블 3M","o":37,"f":0},{"p":"3C동축케이블전원+영상","m":"일체형케이블(TVI,AHD)10M","o":57,"f":0},{"p":"두현입고","m":"일체형케이블(TVI,AHD)10M","o":0,"f":0},{"p":"","m":"일체형케이블(TVI,AHD)20M","o":3,"f":0},{"p":"","m":"일체형케이블(TVI,AHD)30M","o":0,"f":0},{"p":"파워컨트롤러","m":"SJ4808PC","o":0,"f":0},{"p":"투윈스컴","m":"TP-309 (9채널)","o":2,"f":0},{"p":"","m":"DPC-018","o":0,"f":0},{"p":"","m":"DY-080PC","o":0,"f":0},{"p":"","m":"CPC-2008","o":1,"f":0},{"p":"리시버","m":"SJ2819RX","o":0,"f":0},{"p":"V D A","m":"SJ2316VD (1:6,1:3:2)","o":0,"f":0},{"p":"리시버","m":"DRX-500","o":0,"f":0},{"p":"HD LENS 2M","m":"DCL-M2812D /아이디스","o":28,"f":0},{"p":"HD LENS 3M","m":"YT2812D-IR-3MP","o":0,"f":0},{"p":"HD LENS 3M","m":"WCLV281203-A(2.8-12mm)","o":0,"f":0},{"p":"HD LENS 6M","m":"CS-D0550IR","o":0,"f":0},{"p":"","m":"12V 2A (태영전자)","o":50,"f":0},{"p":"","m":"AC24V300MA","o":8,"f":0},{"p":"mnc-427sr건","m":"AC24V 4.5A","o":2,"f":0},{"p":"콘넥타","m":"BNC 5C 툴용","o":5,"f":0},{"p":"","m":"BNC AV","o":61,"f":0},{"p":"각도기","m":"SUS 大(DB 102S)","o":0,"f":0},{"p":"하이박스","m":"150*150*100","o":9,"f":0},{"p":"","m":"125*125*75","o":17,"f":0},{"p":"HD-SDI,SD","m":"HD-SP260DTL (4m)","o":5,"f":0},{"p":"아이디스","m":"IM-2201F","o":0,"f":0},{"p":"삼성모니터","m":"LS22D300 (삼성)","o":0,"f":0},{"p":"엘지전자 LG","m":"22MP410 (LG)","o":0,"f":0},{"p":"엘지전자 LG","m":"22U401A","o":5,"f":0},{"p":"엘지전자 LG","m":"24U411A (LG)","o":0,"f":0},{"p":"","m":"27MR400 (LG)","o":0,"f":0},{"p":"광모듈(멀티)","m":"SFP-SX","o":0,"f":0},{"p":"광모듈(싱글)지빅","m":"SFP-I-LX (SFP-LX20동일)","o":3,"f":0},{"p":"광모듈(싱글)","m":"SFP-LX20","o":0,"f":0},{"p":"기가 광컨버터","m":"SFC2000-SFP 솔텍","o":0,"f":0},{"p":"광컨버터","m":"SFC200-SCS","o":0,"f":0},{"p":"광스위치","m":"SFC400HP","o":0,"f":0},{"p":"광모듈(멀티)","m":"SFP-LX20KM","o":0,"f":0},{"p":"광점퍼코드","m":"LC-SC-SM-2c-3M","o":10,"f":0},{"p":"비바코리아 IP IR","m":"VVK-IPCIE15LPR","o":2,"f":0},{"p":"방수하우징","m":"ITH-5140","o":0,"f":0},{"p":"BRACKET","m":"JY-330","o":0,"f":0},{"p":"BRACKET","m":"JT-300H","o":0,"f":0},{"p":"스위칭허브","m":"NEXT-POE605F","o":0,"f":0},{"p":"(9M,4방향)","m":"PNF-9010RVN 단종","o":0,"f":0},{"p":"(5M,4방향)","m":"SNF-8010N (파노라마)단종","o":0,"f":0},{"p":"","m":"XNP-6321H 단종예정","o":0,"f":0},{"p":"단종","m":"SRD-850DC","o":0,"f":1},{"p":"AHD PTZ(32)\nSD지원","m":"HCP-6320A 단종","o":0,"f":0},{"p":"","m":"HCP-6320HA 단종","o":0,"f":0},{"p":"4M AHD/2M TVI CVI SD","m":"HRD-842(3TB) 단종","o":0,"f":0},{"p":"팬타브리드","m":"HRX-420 (2TB)단종","o":0,"f":0},{"p":"노하드/출장X","m":"TR0412(0TB)단종","o":0,"f":0},{"p":"2M SD,AHD,TVI","m":"HR1204 (2TB)단종","o":0,"f":0},{"p":"2M SD,AHD,TVI","m":"HR1208(2TB) 단종","o":0,"f":0},{"p":"5M DVR","m":"HR1204A (2TB)단종","o":0,"f":0},{"p":"5M DVR","m":"HR1204A (0TB) 단종","o":0,"f":0},{"p":"5M DVR(4대붙음/30F)","m":"HR1208A (0TB) 단종","o":0,"f":0},{"p":"5M DVR(4대붙음/30F)","m":"TR-0812A (3TB)","o":0,"f":0},{"p":"2M DVR","m":"TDR411(2TB)","o":0,"f":0},{"p":"5M DVR","m":"HR2404 (2TB) 단종","o":0,"f":0},{"p":"5M DVR","m":"HR2408 (2TB)단종","o":0,"f":0},{"p":"H264,H265","m":"IDR-9916 (3TB)","o":0,"f":0},{"p":"TVI차량번호식별","m":"MTC1290BR/ 단종","o":0,"f":0},{"p":"핀홀","m":"MTC1209M (2.5MM)단종","o":0,"f":0},{"p":"단종","m":"MNC-120R(3-9mm)","o":0,"f":0},{"p":"2M DOME","m":"DC-S4212DR(4mm)","o":0,"f":0},{"p":"2M DOME 씨아이","m":"DC-C2510DR (4mm)","o":0,"f":0},{"p":"2M DOME","m":"DC-S5212DR(4mm) 단종","o":0,"f":0},{"p":"2M DOME","m":"DC-S4213DRX(4mm) DC-S5212DR(4mm)","o":0,"f":0},{"p":"2M DOME","m":"DC-D1342RX (4mm)단종","o":0,"f":0},{"p":"5M DOME 단종","m":"DC-S5512DR (2.8mm)단종","o":0,"f":0},{"p":"단종","m":"DC-S5230BR(4mm)","o":0,"f":0},{"p":"단종","m":"DC-S4212TWR(4mm)","o":0,"f":0},{"p":"단종","m":"NC-E4212WR(4mm)","o":0,"f":0},{"p":"2M BULLET","m":"NC-E4213WRX(2.8mm)","o":0,"f":0},{"p":"단종","m":"DC-S5240BR(2.8-12mm)","o":0,"f":0},{"p":"단종","m":"NC-T4233WRX(2.8-12mm)","o":0,"f":0},{"p":"단종","m":"DC-T3342HRX(2.8-12MM)","o":0,"f":0},{"p":"단종/ ZOOM (X18)","m":"MNC-328BRZ (NC-Z320-1ZW)","o":0,"f":0},{"p":"단종/ 5M fish eye","m":"MNC-552DF(1.455mm)","o":0,"f":0},{"p":"단종/ 2M BULLET","m":"MNC-5270BR(9-22MM)","o":0,"f":0},{"p":"단종/ 2M BULLET","m":"MNC-5291BRL(4.4-10mm)LM 야간칼라","o":0,"f":0},{"p":"단종/ 12M fish eye","m":"DC-Y3C14WRX (MNC-5970DF)","o":0,"f":0},{"p":"5M NVR","m":"DR-1304PC(1TB) 소형","o":0,"f":0},{"p":"4K NVR (8POE)","m":"DR-1623P (4TB) 단종","o":0,"f":0},{"p":"단종","m":"DIR-1642(3TB)poe8포트","o":0,"f":0},{"p":"단종/ 5M NVR","m":"DR-S450R (2TB)","o":0,"f":0},{"p":"단종 4K NVR","m":"DR-S451R (2TB)","o":0,"f":0},{"p":"단종 4K 8CH NVR","m":"DR-S851R (3TB)고급형","o":0,"f":0},{"p":"단종 4K NVR (8POE)","m":"DR-2316P(2TB) DIR1640","o":0,"f":0},{"p":"H264,H265 코덱지원","m":"DR-6316PS-S(4TB)si단종","o":0,"f":0},{"p":"H264,H265 코덱지원","m":"DR-6332PS-S(4TB)si단종","o":0,"f":0},{"p":"단종/ 4K 32CH NVR","m":"DR-S3251R(4TB)","o":0,"f":0},{"p":"4K 64CH NVR","m":"DIR-6493 (4TB*2개)단종","o":0,"f":0},{"p":"X30 2M","m":"MNC-427SR(DC-S1283WRX)","o":0,"f":0},{"p":"X31 5M","m":"MNC-5580SR","o":0,"f":0},{"p":"2M DOME/반달","m":"DC-D4213WRX(2.8mm)","o":0,"f":0},{"p":"TTA 2M 단종","m":"DC-D1542RT(4mm)TTA","o":0,"f":0},{"p":"2M BULLET 하이실리콘","m":"NC-T4233HRX 단종(DC-S5240BR)","o":0,"f":0},{"p":"5M DOME 단종 하이실리콘","m":"DC-S4513DRX(4mm)단종","o":0,"f":0},{"p":"5M BULLET 단종","m":"DC-S5532BR(4mm)","o":0,"f":0},{"p":"5M BULLET 단종","m":"DC-E1345WRX(4mm)","o":0,"f":0},{"p":"5M BULLET 단종","m":"DC-S4513TWRX(4mm)","o":0,"f":0},{"p":"2M BULLET","m":"DC-T3233HRX (MNC-5240BR)","o":0,"f":0},{"p":"5M BULLET","m":"DC-S5540BR 단종(2.7-17.5mm)","o":0,"f":0},{"p":"5M BULLET","m":"DC-T3345HRX 단종","o":0,"f":0},{"p":"5M BULLET","m":"NC-T4533THRX 단종","o":0,"f":0},{"p":"5M BULLET","m":"DC-T3533HRX 단종(MNC-5540BR)","o":0,"f":0},{"p":"ZOOM (X18)","m":"MNC-320Z 단종","o":0,"f":0},{"p":"5M fish eye","m":"NC-Y6513RX (1.5mm)단종","o":0,"f":0},{"p":"12M fish eye","m":"NC-Y8C13WRX 단종","o":0,"f":0},{"p":"5M NVR","m":"DR-S1304P (2TB)","o":0,"f":0},{"p":"5M NVR","m":"DR-S850R (2TB)","o":0,"f":0},{"p":"4K NVR","m":"DR-S2304P(2TB)","o":0,"f":0},{"p":"4K 8CH NVR","m":"DR-S2308P (3TB)","o":0,"f":0},{"p":"4K 8CH NVR","m":"DR-0823P (3TB)","o":0,"f":0},{"p":"3M BOX 단종","m":"NC-B3303X (MNC-5350B)","o":0,"f":0},{"p":"핀홀카메라","m":"NC-V4211XJ(2.5mm)단종예정","o":0,"f":0},{"p":"핀홀카메라/단종","m":"NC-V3213XJ(2.5mm) MNC-5260P(2.5mm)","o":0,"f":0},{"p":"핀홀카메라/단종","m":"NC-V3213XJ(4.3mm)MNC-5260P(4.3MM)","o":0,"f":0},{"p":"12M/하이실리콘/단종","m":"NC-T3C33HRX (MNC-5860BR)","o":0,"f":0},{"p":"12M/하이실리콘/단종 SI","m":"DC-T333CHRX (4.5-10mm)","o":0,"f":0},{"p":"큐브카메라","m":"NTC-IP21107AI (MNC-5270C동급)","o":0,"f":0},{"p":"X31 8M IR","m":"NC-S3883HRX 단종(MNC-5880SR)","o":0,"f":0},{"p":"5M NVR","m":"DR-S1308P(2TB)","o":0,"f":0},{"p":"2M NVR","m":"DIR-830N (2TB) 단종","o":0,"f":0},{"p":"4K 16CH NVR","m":"DR-1643PS(4TB)","o":0,"f":0},{"p":"4K 16CH NVR","m":"NR-4316PS(3TB)","o":0,"f":0},{"p":"4K 16CH NVR","m":"DR-S4316PS(4TB)/DR-S1651R","o":0,"f":0},{"p":"32CH 단종","m":"PR100 (32CH) (IWS-1000) 3TB","o":0,"f":0},{"p":"2M DOME/단종마이크로돔","m":"DC-S4212DRX(2.8mm)마이크로돔","o":0,"f":0},{"p":"NDR","m":"NDR-9816N(2TB)단종","o":0,"f":0},{"p":"64CH","m":"NR-8364(8TB)단종       (DIR-6493)","o":0,"f":0},{"p":"64CH","m":"DR-6483D (0TB)","o":0,"f":0},{"p":"64CH","m":"DR-6483D(12TB)하드는 짝수로.","o":0,"f":0},{"p":"4K 32CH NVR","m":"DR-S6332PS-A(4TB)단종/하이실리콘","o":0,"f":0},{"p":"4K 32CH NVR","m":"NR-6332PS-A(3TB)","o":0,"f":0},{"p":"4K 32CH NVR","m":"DR-3263PS-SA (0TB)","o":0,"f":0},{"p":"64CH","m":"IR300 (0TB)","o":0,"f":0},{"p":"64CH","m":"IR300A(0TB)","o":0,"f":0},{"p":"64CH","m":"IR300A (12TB)","o":0,"f":0},{"p":"64CH","m":"IR300B (0TB)","o":0,"f":0},{"p":"64CH","m":"IR300 (48TB)","o":0,"f":0},{"p":"64CH","m":"PR300 (48TB)","o":0,"f":0},{"p":"64CH","m":"IR300A (48TB)","o":0,"f":0},{"p":"5M DVR","m":"HR4308(3TB)2U 단종예정","o":0,"f":0},{"p":"5M DVR","m":"HR-S4316(4TB)","o":0,"f":0},{"p":"2M BULLET 하이실리콘","m":"DC-S4233THRX 단종","o":0,"f":0},{"p":"2M 반달돔(방수,히터)/해외모델","m":"DC-D4233HRX 해외모델","o":0,"f":0},{"p":"단종","m":"IDR-9932(3TB)","o":0,"f":0},{"p":"단종","m":"XRN-1610A (4TB)","o":0,"f":0},{"p":"단종","m":"XRN-1610SA (4TB)","o":0,"f":0},{"p":"단종","m":"SMt-1935  (VGA,BNC,hdmi)","o":0,"f":0},{"p":"단종","m":"SMT-2210  (VGA,HDMI)","o":0,"f":0},{"p":"단종","m":"SMT-2233 (VGA,BNC,HDMI)","o":0,"f":0},{"p":"2M TVI,SD","m":"TC-D4211RX (4mm)","o":0,"f":0},{"p":"2M TVI전용 IR PTZ/벽부형포함","m":"HC-S4261WR(18X,4.6~84.6mm)단종","o":0,"f":0},{"p":"5M DOME 암바렐라","m":"NC-D4515WRX-A (4mm)","o":0,"f":0},{"p":"","m":"DC-D1545WRX-A","o":0,"f":0},{"p":"5M DOME 암바렐라","m":"DC-D1545WRX-A","o":0,"f":0},{"p":"5M DOMe특별가","m":"DC-D1345RX(4mm)해외모델","o":0,"f":0},{"p":"5M BULLET","m":"NC-T4515WRX-A (4mm)","o":0,"f":0},{"p":"5M BULLET/암바렐라","m":"DC-S4535THRX-A(4-14mm)","o":0,"f":0},{"p":"5M DOME 단종","m":"DC-S5520DR(3-13.5mm)","o":0,"f":0},{"p":"","m":"더미돔","o":2,"f":0}];
+let activeFilter='all',searchHistory=[],deferredInstall=null;
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;document.getElementById('installSec').style.display='block';});
+window.addEventListener('appinstalled',()=>{document.getElementById('installSec').style.display='none';});
+function installPWA(){if(deferredInstall){deferredInstall.prompt();deferredInstall.userChoice.then(()=>{deferredInstall=null;document.getElementById('installSec').style.display='none';});}}
+function showTab(n){['search','scan','hist'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('on',t===n);document.getElementById('page-'+t).classList.toggle('on',t===n);});if(n==='search')document.getElementById('searchInput').focus();}
+function setFilter(f,el){activeFilter=f;document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('on'));el.classList.add('on');onSearch();}
+function onSearch(){
+  const q=document.getElementById('searchInput').value.trim();
+  document.getElementById('searchClear').classList.toggle('show',!!q);
+  const res=searchInv(q,activeFilter);
+  document.getElementById('statResults').textContent=q?res.length:'—';
+  renderResults(q,res,'resultsArea');
+  if(q&&res.length)addHistory({type:'text',query:q,matchCount:res.length,results:res.slice(0,5),time:new Date().toLocaleString('ko-KR')});
+}
+function clearSearch(){document.getElementById('searchInput').value='';document.getElementById('searchClear').classList.remove('show');document.getElementById('statResults').textContent='—';document.getElementById('resultsArea').innerHTML='<div class="empty"><div class="em-ic">&#128230;</div><div class="em-title">검색어를 입력하세요</div></div>';}
+function searchInv(query,filter){
+  let pool=INV;
+  if(filter==='stock')pool=pool.filter(i=>(i.o+i.f)>0);
+  else if(filter==='office')pool=pool.filter(i=>i.o>0);
+  else if(filter==='floor')pool=pool.filter(i=>i.f>0);
+  else if(filter==='active')pool=pool.filter(i=>!i.m.includes('단종')&&!i.p.includes('단종'));
+  if(!query)return pool.slice(0,50);
+  const q=query.toUpperCase().trim();
+  const terms=q.split(/\s+/).filter(Boolean);
+  const scored=[];
+  for(const item of pool){
+    const mU=item.m.toUpperCase();
+    const pU=item.p.toUpperCase();
+    let score=0;
+    if(mU===q)score=1000;
+    else if(mU.startsWith(q))score=500;
+    else if(mU.includes(q))score=200;
+    else{
+      let any=false;
+      for(const t of terms){if(mU.includes(t)){score+=50;any=true;}else if(pU.includes(t)){score+=20;any=true;}}
+      if(!any)continue;
+    }
+    if((item.o+item.f)>0)score+=30;
+    scored.push({item,score});
+  }
+  return scored.sort((a,b)=>b.score-a.score).map(s=>s.item);
+}
+function renderResults(query,results,areaId){
+  const area=document.getElementById(areaId);
+  if(!results.length&&!query){area.innerHTML='<div class="empty"><div class="em-ic">&#128230;</div><div class="em-title">검색어를 입력하세요</div></div>';return;}
+  if(!results.length){area.innerHTML='<div class="empty"><div class="em-ic">&#128543;</div><div class="em-title">"'+escH(query)+'" 결과 없음</div><div class="em-desc">다른 검색어를 시도해보세요</div></div>';return;}
+  const show=Math.min(results.length,30);
+  let html='<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--t3);margin-bottom:9px;">'+results.length+'개 발견'+(results.length>30?' (상위 30개)':'')+(query?' &middot; <span style="color:var(--ac)">'+escH(query)+'</span>':'')+'</div><div class="results-list">';
+  for(let i=0;i<show;i++){
+    const r=results[i];
+    const mH=query?hlText(r.m,query):escH(r.m);
+    const pH=query?hlText(r.p,query):escH(r.p);
+    const disc=r.m.includes('단종')||r.p.includes('단종');
+    const total=r.o+r.f;
+    const sc=results[i].score>=200||!query?'s-exact':results[i].score>=50?'s-high':'s-mid';
+    const ob='<div class="sbadge '+(r.o>0?'office':'zero')+'"><div style="font-size:9px;opacity:.7">사무실</div>'+r.o+'</div>';
+    const fb='<div class="sbadge '+(r.f>0?'floor':'zero')+'"><div style="font-size:9px;opacity:.7">1층</div>'+r.f+'</div>';
+    html+='<div class="ri '+sc+'"><div class="ri-head"><div class="ri-model">'+mH+'</div><div class="stock-badges">'+ob+fb+'</div></div><div class="ri-body">'+(r.p?'<div class="ri-pname">'+pH+'</div>':'')+(disc?'<div class="ri-disc">단종</div>':'')+(total>0?'<div style="font-size:11px;color:var(--ac);margin-top:5px;font-family:'DM Mono',monospace;">&#128230; 합계 '+total+'개</div>':'')+'</div></div>';
+  }
+  html+='</div>';
+  area.innerHTML=html;
+}
+function hlText(text,query){
+  if(!query)return escH(text);
+  const e=escH(text);
+  const qe=escH(query).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return e.replace(new RegExp('('+qe+')','gi'),'<mark>$1</mark>');
+}
+function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function handleImg(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{const img=document.getElementById('prevImg');img.src=e.target.result;img.classList.add('show');document.getElementById('camPh').style.display='none';runOCR(e.target.result);};
+  reader.readAsDataURL(file);
+}
+async function runOCR(dataUrl){
+  document.getElementById('ocrOv').classList.add('on');
+  document.getElementById('ocrBox').style.display='none';
+  document.getElementById('ocrBar').style.width='0%';
+  document.getElementById('ocrPct').textContent='0%';
+  document.getElementById('ocrSt').textContent='준비 중...';
+  document.getElementById('scanRA').innerHTML='<div class="empty" style="padding:20px"><div class="spinner" style="margin:0 auto 12px"></div><div class="em-title" style="animation:pulse 1.4s infinite">텍스트 인식 중...</div></div>';
+  try{
+    const res=await Tesseract.recognize(dataUrl,'kor+eng',{logger:m=>{if(m.status==='recognizing text'){const p=Math.round(m.progress*100);document.getElementById('ocrBar').style.width=p+'%';document.getElementById('ocrPct').textContent=p+'%';document.getElementById('ocrSt').textContent='인식 중...';}else if(m.status.includes('loading')){document.getElementById('ocrSt').textContent='언어 로딩...';}}});
+    document.getElementById('ocrOv').classList.remove('on');
+    const raw=res.data.text||'';
+    const cleaned=raw.replace(/[^\w\d가-힣\s\-.]/g,' ').replace(/\s+/g,' ').trim();
+    const tokens=extractTok(raw);
+    document.getElementById('ocrBox').style.display='block';
+    document.getElementById('ocrRaw').textContent=cleaned.substring(0,200)||'(인식 실패)';
+    document.getElementById('ocrTokens').innerHTML=tokens.map(t=>'<span class="token" onclick="useTok(''+t.replace(/'/g,"\\'")+'')"">'+escH(t)+'</span>').join('');
+    const bestQ=tokens[0]||'';
+    if(bestQ){document.getElementById('ocrSI').value=bestQ;document.getElementById('ocrClear').classList.add('show');doOcrSearch(bestQ);}
+    else{document.getElementById('scanRA').innerHTML='<div class="empty"><div class="em-ic">&#128221;</div><div class="em-title">텍스트 인식 부족</div><div class="em-desc">검색어를 직접 입력해보세요</div></div>';}
+  }catch(err){document.getElementById('ocrOv').classList.remove('on');document.getElementById('scanRA').innerHTML='<div class="err-box"><span>&#9888;</span><span>OCR 오류: '+escH(err.message)+'</span></div>';}
+}
+function extractTok(text){
+  const tokens=new Set();
+  (text.toUpperCase().match(/[A-Z]{1,5}-[A-Z0-9][A-Z0-9-]{2,15}/g)||[]).forEach(t=>{if(t.length>=5)tokens.add(t);});
+  (text.toUpperCase().match(/[A-Z][A-Z0-9-]{4,18}/g)||[]).forEach(t=>tokens.add(t));
+  (text.match(/[가-힣]{2,}/g)||[]).forEach(t=>tokens.add(t));
+  (text.match(/\d{4,}/g)||[]).forEach(t=>tokens.add(t));
+  return [...tokens].filter(t=>t.length>2).slice(0,10);
+}
+function useTok(t){document.getElementById('ocrSI').value=t;document.getElementById('ocrClear').classList.add('show');document.querySelectorAll('.token').forEach(el=>el.classList.toggle('used',el.textContent===t));doOcrSearch(t);}
+function onOcrSearch(){const q=document.getElementById('ocrSI').value.trim();document.getElementById('ocrClear').classList.toggle('show',!!q);if(q)doOcrSearch(q);}
+function clearOcr(){document.getElementById('ocrSI').value='';document.getElementById('ocrClear').classList.remove('show');}
+function doOcrSearch(q){const res=searchInv(q,'all');renderResults(q,res,'scanRA');if(res.length)addHistory({type:'ocr',thumb:document.getElementById('prevImg').src,query:q,matchCount:res.length,results:res.slice(0,5),time:new Date().toLocaleString('ko-KR')});}
+function addHistory(e){const idx=searchHistory.findIndex(h=>h.query===e.query);if(idx>=0)searchHistory.splice(idx,1);e.id=Date.now();searchHistory.unshift(e);if(searchHistory.length>30)searchHistory=searchHistory.slice(0,30);try{localStorage.setItem('inv_h3',JSON.stringify(searchHistory));}catch(e){}renderHist();}
+function renderHist(){
+  const b=document.getElementById('histBadge');b.textContent=searchHistory.length;b.style.display=searchHistory.length?'block':'none';
+  const card=document.getElementById('histCard');
+  if(!searchHistory.length){card.innerHTML='<div class="empty"><div class="em-ic">&#128336;</div><div class="em-title">기록 없음</div></div>';return;}
+  card.innerHTML=searchHistory.map(e=>{
+    const th=e.type==='ocr'&&e.thumb?'<img class="hist-thumb" src="'+e.thumb+'" alt="">':'<div class="hist-thumb tt">'+escH((e.query||'').substring(0,4))+'</div>';
+    return '<div class="hist-item" onclick="loadHist('+e.id+')">'+th+'<div style="flex:1;min-width:0"><div class="hist-q">'+escH(e.query)+'</div><div class="hist-meta">'+escH(e.time)+'</div></div><div class="hist-cnt">'+e.matchCount+'건</div></div>';
+  }).join('');
+}
+function loadHist(id){
+  const e=searchHistory.find(h=>h.id===id);if(!e)return;
+  if(e.type==='ocr'){if(e.thumb){const img=document.getElementById('prevImg');img.src=e.thumb;img.classList.add('show');document.getElementById('camPh').style.display='none';}document.getElementById('ocrSI').value=e.query;document.getElementById('ocrClear').classList.add('show');const res=searchInv(e.query,'all');renderResults(e.query,res,'scanRA');showTab('scan');}
+  else{document.getElementById('searchInput').value=e.query;document.getElementById('searchClear').classList.add('show');const res=searchInv(e.query,'all');renderResults(e.query,res,'resultsArea');document.getElementById('statResults').textContent=res.length;showTab('search');}
+}
+function clearHist(){if(confirm('기록을 모두 삭제할까요?')){searchHistory=[];localStorage.removeItem('inv_h3');renderHist();}}
+// INIT
+try{const h=localStorage.getItem('inv_h3');if(h){searchHistory=JSON.parse(h);renderHist();}}catch(e){}
+document.getElementById('statStock').textContent=INV.filter(i=>(i.o+i.f)>0).length;
+document.getElementById('statTotal').textContent=INV.length;
+</script>
 </body>
 </html>
