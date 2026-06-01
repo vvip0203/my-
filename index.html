@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#1a365d">
     <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22재고검색기%22,%22short_name%22:%22재고검색%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f7fafc%22,%22theme_color%22:%22%231a365d%22}">
 
-    <!-- 외부 필수 오픈소스 라이브러리 CDN 로드 (에러 원인 수정 완료) -->
+    <!-- 외부 필수 오픈소스 라이브러리 CDN 로드 (정상 가동 보증) -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
@@ -368,6 +368,7 @@
             <label for="excel-file" class="file-label">
                 📂 전체재고 엑셀 파일 불러오기
             </label>
+            <!-- [해결!] ID 속성이 excel-file로 지정되어 라벨과 정상 매칭됩니다 -->
             <input type="file" id="excel-file" accept=".xlsx, .xls">
             <div id="excel-status" class="status-badge">현재 로드된 파일 없음</div>
         </div>
@@ -462,7 +463,7 @@
             });
         });
 
-        // 엑셀 로드 및 시트 자동 최적화 매핑 엔진
+        // [수정!] 파일 업로드 핵심 리스너 정상 연결 및 에러 감지 추가
         document.getElementById('excel-file').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -477,7 +478,7 @@
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
                     
-                    // 1. 시트 전체를 돌며 진짜 '재고 지표(전일/입고/출고)'를 포함하고 있는 최적의 시트 발견
+                    // 1. 진짜 '재고 지표(전일/입고/출고)'가 표기된 시트를 자동 서칭
                     let targetSheetName = null;
                     for (let name of workbook.SheetNames) {
                         const tempSheet = workbook.Sheets[name];
@@ -489,7 +490,6 @@
                         }
                     }
                     
-                    // 만약 단어를 감지하지 못할 경우 대체 기준 시트 선정
                     if (!targetSheetName) {
                         targetSheetName = workbook.SheetNames.find(name => name.includes("재고")) || workbook.SheetNames[0];
                     }
@@ -497,7 +497,6 @@
                     const worksheet = workbook.Sheets[targetSheetName];
                     const rawRows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
                     
-                    // 데이터 전용 인덱싱 파서 처리
                     parsedInventory = parseStockSheet(rawRows);
                     
                     if (parsedInventory.length > 0) {
@@ -514,6 +513,12 @@
                     statusDiv.innerText = "❌ 엑셀 해독 실패. 원본 xlsx 파일을 사용해 주세요.";
                 }
             };
+            
+            reader.onerror = function() {
+                statusDiv.className = "status-badge";
+                statusDiv.innerText = "❌ 파일 읽기 도중 오류가 발생했습니다.";
+            };
+            
             reader.readAsArrayBuffer(file);
         });
 
@@ -537,11 +542,9 @@
                 const row = rows[i];
                 if (!row || row.length < 2) continue;
 
-                // 엑셀 열 레이아웃 규칙 정의
                 const category = String(row[0] || '').trim(); // A열: 구분 (예: 2M AHD)
                 const modelRaw = String(row[1] || '').trim(); // B열: 모델명 (예: HCO-6020R)
 
-                // 소계, 전체 합계 등 비영업 데이터 레코드 필터 배제
                 if (!modelRaw || modelRaw === 'undefined' || modelRaw === 'null' || modelRaw === '') continue;
 
                 const upperModel = modelRaw.toUpperCase();
@@ -550,7 +553,6 @@
                 // 모델명 뒤 단종 텍스트 정제 전처리
                 const model = modelRaw.replace(/\s*단종\s*$/, '').trim();
 
-                // 2중 병합 엑셀 각 셀의 고정 인덱스 수량 데이터 할당 (빈 셀은 0으로 완벽 보정)
                 const totalStock = row[2] !== undefined ? cleanNumber(row[2]) : 0;  // C열: 전체 합계 수량
                 const officeStock = row[6] !== undefined ? cleanNumber(row[6]) : 0; // G열: 사무실 합계 수량
                 const floor1Stock = row[10] !== undefined ? cleanNumber(row[10]) : 0; // K열: 1층 합계 수량
@@ -616,7 +618,7 @@
             });
         });
 
-        // 다차원 정밀 단어 교차 대조 검색 알고리즘 (공백/기호 완전 제거 및 부분 하이라이트 제공)
+        // 다차원 정밀 단어 교차 대조 검색 알고리즘 (한글, 공백, 하이라이트 대응)
         function searchInventory(inputText, isManual = false) {
             const resultBox = document.getElementById('result-box');
             
@@ -625,10 +627,7 @@
                 return;
             }
 
-            // 띄어쓰기 및 특수문자, 하이픈 단위로 검색어를 쪼개어 가중치 AND 검색 수행
             const rawTerms = inputText.split(/[\s,.\-()/]+/).filter(t => t.trim().length > 0);
-            
-            // 특수문자 기호를 제거한 매칭 필터용 단어 수집
             const terms = rawTerms.map(t => t.replace(/[^A-Za-z0-9가-힣]/g, '').toUpperCase()).filter(t => t.length > 0);
 
             if (terms.length === 0) {
@@ -641,20 +640,16 @@
                 return;
             }
 
-            // 검색 가중치 대조 연산
             const matches = parsedInventory.filter(item => {
                 const searchTarget = (item.category + " " + item.model).replace(/[^A-Za-z0-9가-힣]/g, '').toUpperCase();
-                // 사용자가 입력한 모든 키워드 조각이 대상 내에 하나라도 포함되어 있어야 함
                 return terms.every(term => searchTarget.includes(term));
             });
 
-            // 검색 결과 렌더링
             if (matches.length > 0) {
                 const searchType = isManual ? "⌨️ 수동 입력" : "📸 사진 자동 인식";
                 let html = `<div class="result-header">${searchType} 매칭 성공 - 총 <b>${matches.length}건</b> 조회됨</div>`;
 
                 matches.forEach(item => {
-                    // 검색된 단어 부분에 노란색 형광펜 하이라이트 효과 부여
                     let displayModel = item.model;
                     rawTerms.forEach(term => {
                         if (term.length >= 2) {
@@ -693,3 +688,9 @@
                         <span style="color:var(--primary-color); font-weight:700;">"${inputText.trim()}"</span><br><br>
                         ❌ 일치하는 재고 품목이 존재하지 않습니다.
                     </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
