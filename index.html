@@ -1,5 +1,700 @@
 <index.html>
+<html lang="ko"><!DOCTYPE html>
 <html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>스마트 재고 검색기 Pro</title>
+    
+    <!-- PWA 모바일 앱 설정 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a365d">
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22재고검색기%22,%22short_name%22:%22재고검색%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f7fafc%22,%22theme_color%22:%22%231a365d%22}">
+
+    <!-- 외부 필수 오픈소스 라이브러리 CDN 로드 (정상 가동 보증) -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #1a365d;
+            --primary-hover: #2a4365;
+            --success-color: #2f855a;
+            --bg-color: #f7fafc;
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 16px;
+            padding-bottom: 40px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 540px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px 0;
+        }
+
+        header h1 {
+            font-size: 22px;
+            color: #1a202c;
+            font-weight: 800;
+        }
+
+        header p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
+        }
+
+        h3 {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #1a202c;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        h3::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background-color: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        /* 파일 선택 버튼 스타일 */
+        .file-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px;
+            background-color: var(--success-color);
+            color: white;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            text-align: center;
+            border: none;
+            box-shadow: 0 2px 4px rgba(47, 133, 90, 0.2);
+        }
+
+        .file-label:active { opacity: 0.9; }
+        input[type="file"] { display: none; }
+
+        /* 검색창 디자인 */
+        .search-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 35px 12px 14px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+            color: var(--text-main);
+        }
+
+        .search-input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .clear-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 18px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .search-btn {
+            padding: 12px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(26, 54, 93, 0.2);
+        }
+
+        .search-btn:active { background-color: var(--primary-hover); }
+
+        /* 빠른 카테고리 필터 단추 */
+        .category-chips {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .chip {
+            padding: 6px 12px;
+            background-color: #edf2f7;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .chip.active, .chip:active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        /* 카메라 스캔 버튼 스타일 */
+        .camera-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px;
+            background-color: #3182ce;
+            color: white;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(49, 130, 206, 0.2);
+        }
+
+        .camera-btn:active { opacity: 0.9; }
+
+        .preview-wrapper {
+            position: relative;
+            margin-top: 12px;
+            display: none;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        #preview {
+            width: 100%;
+            max-height: 200px;
+            object-fit: contain;
+            background-color: #000;
+            display: block;
+        }
+
+        /* 진행 상태 뱃지 */
+        .status-badge {
+            margin-top: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            background-color: #edf2f7;
+            color: var(--text-muted);
+        }
+
+        .status-badge.success {
+            background-color: #f0fff4;
+            color: #38a169;
+        }
+
+        .status-badge.loading {
+            background-color: #ebf8ff;
+            color: #2b6cb0;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* 결과 화면 프레임 및 카드 */
+        #result-box {
+            font-size: 14px;
+        }
+
+        .info-msg {
+            text-align: center;
+            padding: 20px 0;
+            color: var(--text-muted);
+        }
+
+        .result-header {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .item-card {
+            background: #f8fafc;
+            border: 1px solid #edf2f7;
+            border-left: 5px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .item-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .item-category {
+            font-size: 12px;
+            font-weight: 700;
+            color: #718096;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .item-model-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #1a365d;
+            margin-bottom: 10px;
+        }
+
+        /* 수량 정렬 배치 그리드 */
+        .quantity-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .qty-box {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .qty-title {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+
+        .qty-num {
+            font-size: 15px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .qty-num.highlight {
+            color: #e53e3e;
+        }
+
+        .qty-total {
+            grid-column: span 2;
+            background: #edf2f7;
+            border: 1px solid #cbd5e0;
+        }
+
+        mark {
+            background-color: #fef08a;
+            color: #1a202c;
+            padding: 0 2px;
+            border-radius: 3px;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>📦 스마트 재고 검색기 Pro</h1>
+            <p>전체재고 엑셀 전용 초정밀 매칭 시스템</p>
+        </header>
+
+        <!-- 1단계: 엑셀 파일 로드 -->
+        <div class="card">
+            <h3>1. 재고 엑셀 파일 선택</h3>
+            <label for="excel-file" class="file-label">
+                📂 전체재고 엑셀 파일 불러오기
+            </label>
+            <!-- [해결!] ID 속성이 excel-file로 지정되어 라벨과 정상 매칭됩니다 -->
+            <input type="file" id="excel-file" accept=".xlsx, .xls">
+            <div id="excel-status" class="status-badge">현재 로드된 파일 없음</div>
+        </div>
+
+        <!-- 2단계 A: 수동 검색 -->
+        <div class="card">
+            <h3>2-A. 수동 모델명 또는 단어 입력</h3>
+            <div class="search-row">
+                <div class="search-input-wrapper">
+                    <input type="text" id="manual-input" class="search-input" placeholder="예: HCO-6020R, 하이실리콘, 5M DVR">
+                    <button id="clear-input" class="clear-btn">×</button>
+                </div>
+                <button id="manual-btn" class="search-btn">검색</button>
+            </div>
+            <!-- 간편 퀵칩 필터 목록 -->
+            <div class="category-chips" id="quick-chips">
+                <div class="chip" data-val="2M AHD">2M AHD</div>
+                <div class="chip" data-val="5M DVR">5M DVR</div>
+                <div class="chip" data-val="64CH">64CH</div>
+                <div class="chip" data-val="하이실리콘">하이실리콘</div>
+                <div class="chip" data-val="해외모델">해외모델</div>
+                <div class="chip" data-val="단종">단종</div>
+            </div>
+        </div>
+
+        <!-- 2단계 B: 카메라 라이브 스캔 OCR 검색 -->
+        <div class="card">
+            <h3>2-B. 카메라 제품명 촬영</h3>
+            <label for="camera-input" class="camera-btn">
+                📷 카메라 열기 / 제품 라벨 촬영
+            </label>
+            <input type="file" id="camera-input" accept="image/*" capture="environment">
+            <div class="preview-wrapper" id="preview-wrapper">
+                <img id="preview" alt="스캔본">
+            </div>
+            <div id="ocr-status" class="status-badge">사진을 선택하면 글자를 자동으로 판독합니다.</div>
+        </div>
+
+        <!-- 3단계: 매칭 검색 결과 디스플레이 -->
+        <div class="card">
+            <h3>3. 실시간 검색 결과</h3>
+            <div id="result-box">
+                <div class="info-msg">1단계에서 실제 재고 엑셀 파일을 업로드해 주세요.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let parsedInventory = [];
+
+        // 안전한 숫자 파싱 헬퍼 함수
+        function cleanNumber(val) {
+            if (val === undefined || val === null || val === '') return 0;
+            const num = Number(val);
+            if (!isNaN(num)) return num;
+            const cleanStr = String(val).replace(/[^0-9.-]/g, '');
+            const parsed = Number(cleanStr);
+            return isNaN(parsed) ? 0 : parsed;
+        }
+
+        // 검색창 비우기 제어
+        const manualInput = document.getElementById('manual-input');
+        const clearInputBtn = document.getElementById('clear-input');
+
+        manualInput.addEventListener('input', function() {
+            clearInputBtn.style.display = this.value.length > 0 ? 'block' : 'none';
+        });
+
+        clearInputBtn.addEventListener('click', function() {
+            manualInput.value = '';
+            this.style.display = 'none';
+            manualInput.focus();
+            // 활성화된 카테고리 칩 비활성화
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        });
+
+        // 퀵 칩 클릭 제어
+        document.querySelectorAll('.chip').forEach(chip => {
+            chip.addEventListener('click', function() {
+                const isActive = this.classList.contains('active');
+                document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+                
+                if (isActive) {
+                    manualInput.value = '';
+                    clearInputBtn.style.display = 'none';
+                } else {
+                    this.classList.add('active');
+                    manualInput.value = this.getAttribute('data-val');
+                    clearInputBtn.style.display = 'block';
+                }
+                triggerManualSearch();
+            });
+        });
+
+        // [수정!] 파일 업로드 핵심 리스너 정상 연결 및 에러 감지 추가
+        document.getElementById('excel-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            const statusDiv = document.getElementById('excel-status');
+            statusDiv.className = "status-badge loading";
+            statusDiv.innerText = "⏳ 엑셀 전체 구조 및 데이터 시트 탐색 중...";
+
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    
+                    // 1. 진짜 '재고 지표(전일/입고/출고)'가 표기된 시트를 자동 서칭
+                    let targetSheetName = null;
+                    for (let name of workbook.SheetNames) {
+                        const tempSheet = workbook.Sheets[name];
+                        const tempRows = XLSX.utils.sheet_to_json(tempSheet, {header: 1});
+                        const hasStockKeywords = tempRows.some(row => row && row.includes('전일') && row.includes('입고') && row.includes('출고'));
+                        if (hasStockKeywords) {
+                            targetSheetName = name;
+                            break;
+                        }
+                    }
+                    
+                    if (!targetSheetName) {
+                        targetSheetName = workbook.SheetNames.find(name => name.includes("재고")) || workbook.SheetNames[0];
+                    }
+
+                    const worksheet = workbook.Sheets[targetSheetName];
+                    const rawRows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                    
+                    parsedInventory = parseStockSheet(rawRows);
+                    
+                    if (parsedInventory.length > 0) {
+                        statusDiv.className = "status-badge success";
+                        statusDiv.innerHTML = `✅ <b>시트 연결 완료:</b> [${targetSheetName}]에서 ${parsedInventory.length}개 품목 매칭`;
+                        document.getElementById('result-box').innerHTML = '<div class="info-msg">준비 완료! 2단계 입력창 검색 또는 카메라로 사진을 찍어보세요.</div>';
+                    } else {
+                        statusDiv.className = "status-badge";
+                        statusDiv.innerText = "⚠️ 해당 엑셀 시트에서 유효한 행을 찾을 수 없습니다.";
+                    }
+                } catch (err) {
+                    console.error(err);
+                    statusDiv.className = "status-badge";
+                    statusDiv.innerText = "❌ 엑셀 해독 실패. 원본 xlsx 파일을 사용해 주세요.";
+                }
+            };
+            
+            reader.onerror = function() {
+                statusDiv.className = "status-badge";
+                statusDiv.innerText = "❌ 파일 읽기 도중 오류가 발생했습니다.";
+            };
+            
+            reader.readAsArrayBuffer(file);
+        });
+
+        // 엑셀 줄 단위 정규 보정 처리 함수
+        function parseStockSheet(rows) {
+            let list = [];
+            if (rows.length < 2) return [];
+
+            // 서브 헤더 행("전일", "입고", "출고", "합계" 포함 행) 탐색
+            let dataStartRowIndex = 2; // 기본 디폴트
+            for (let r = 0; r < rows.length; r++) {
+                const row = rows[r];
+                if (row && row.includes('전일') && row.includes('입고') && row.includes('출고')) {
+                    dataStartRowIndex = r + 1;
+                    break;
+                }
+            }
+
+            // 분석 진행
+            for (let i = dataStartRowIndex; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length < 2) continue;
+
+                const category = String(row[0] || '').trim(); // A열: 구분 (예: 2M AHD)
+                const modelRaw = String(row[1] || '').trim(); // B열: 모델명 (예: HCO-6020R)
+
+                if (!modelRaw || modelRaw === 'undefined' || modelRaw === 'null' || modelRaw === '') continue;
+
+                const upperModel = modelRaw.toUpperCase();
+                if (upperModel.includes("합계") || upperModel.includes("소계") || upperModel.includes("TOTAL") || upperModel.includes("전체재고") || upperModel.includes("공급사")) continue;
+
+                // 모델명 뒤 단종 텍스트 정제 전처리
+                const model = modelRaw.replace(/\s*단종\s*$/, '').trim();
+
+                const totalStock = row[2] !== undefined ? cleanNumber(row[2]) : 0;  // C열: 전체 합계 수량
+                const officeStock = row[6] !== undefined ? cleanNumber(row[6]) : 0; // G열: 사무실 합계 수량
+                const floor1Stock = row[10] !== undefined ? cleanNumber(row[10]) : 0; // K열: 1층 합계 수량
+
+                list.push({
+                    category: category || "일반",
+                    model: model,
+                    totalStock: totalStock,
+                    officeStock: officeStock,
+                    floor1Stock: floor1Stock
+                });
+            }
+            return list;
+        }
+
+        // 수동 입력 제어
+        document.getElementById('manual-btn').addEventListener('click', function() {
+            triggerManualSearch();
+        });
+
+        manualInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                triggerManualSearch();
+            }
+        });
+
+        function triggerManualSearch() {
+            const query = manualInput.value.trim();
+            if (!query) {
+                alert("모델명을 검색창에 입력해 주세요.");
+                return;
+            }
+            document.getElementById('preview-wrapper').style.display = 'none';
+            document.getElementById('ocr-status').className = "status-badge success";
+            document.getElementById('ocr-status').innerText = "⌨️ 입력 텍스트 분석 완료";
+            searchInventory(query, true);
+        }
+
+        // 모바일 카메라 연동 및 웹 OCR 처리 인터페이스
+        document.getElementById('camera-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const wrapper = document.getElementById('preview-wrapper');
+            const preview = document.getElementById('preview');
+            const ocrStatus = document.getElementById('ocr-status');
+
+            preview.src = URL.createObjectURL(file);
+            wrapper.style.display = 'block';
+            
+            ocrStatus.className = "status-badge loading";
+            ocrStatus.innerHTML = "🔍 <b>라벨 및 모델명 판독 중...</b> (3~5초 소요)";
+
+            Tesseract.recognize(file, 'eng+kor')
+            .then(({ data: { text } }) => {
+                ocrStatus.className = "status-badge success";
+                ocrStatus.innerHTML = "✅ <b>판독 완료</b>";
+                searchInventory(text, false);
+            })
+            .catch(err => {
+                ocrStatus.className = "status-badge";
+                ocrStatus.innerHTML = "❌ <b>OCR 판독 실패</b> (다시 촬영해주세요)";
+            });
+        });
+
+        // 다차원 정밀 단어 교차 대조 검색 알고리즘 (한글, 공백, 하이라이트 대응)
+        function searchInventory(inputText, isManual = false) {
+            const resultBox = document.getElementById('result-box');
+            
+            if (parsedInventory.length === 0) {
+                resultBox.innerHTML = '<div class="info-msg" style="color:#e53e3e; font-weight:700;">⚠️ 먼저 1단계에서 재고 엑셀 파일을 업로드해 주세요!</div>';
+                return;
+            }
+
+            const rawTerms = inputText.split(/[\s,.\-()/]+/).filter(t => t.trim().length > 0);
+            const terms = rawTerms.map(t => t.replace(/[^A-Za-z0-9가-힣]/g, '').toUpperCase()).filter(t => t.length > 0);
+
+            if (terms.length === 0) {
+                resultBox.innerHTML = `
+                    <div class="info-msg">
+                        <b style="color: #e53e3e;">❌ 검색 대상 없음</b><br>
+                        검색어가 너무 짧거나 유효하지 않습니다.<br>
+                        <small style="color:var(--text-muted);">(입력값: "${inputText.trim()}")</small>
+                    </div>`;
+                return;
+            }
+
+            const matches = parsedInventory.filter(item => {
+                const searchTarget = (item.category + " " + item.model).replace(/[^A-Za-z0-9가-힣]/g, '').toUpperCase();
+                return terms.every(term => searchTarget.includes(term));
+            });
+
+            if (matches.length > 0) {
+                const searchType = isManual ? "⌨️ 수동 입력" : "📸 사진 자동 인식";
+                let html = `<div class="result-header">${searchType} 매칭 성공 - 총 <b>${matches.length}건</b> 조회됨</div>`;
+
+                matches.forEach(item => {
+                    let displayModel = item.model;
+                    rawTerms.forEach(term => {
+                        if (term.length >= 2) {
+                            const regex = new RegExp(`(${term})`, 'gi');
+                            displayModel = displayModel.replace(regex, '<mark>$1</mark>');
+                        }
+                    });
+
+                    html += `
+                        <div class="item-card">
+                            <div class="item-category">${item.category}</div>
+                            <div class="item-model-title">${displayModel}</div>
+                            
+                            <div class="quantity-grid">
+                                <div class="qty-box">
+                                    <div class="qty-title">사무실 재고</div>
+                                    <div class="qty-num">${item.officeStock}개</div>
+                                </div>
+                                <div class="qty-box">
+                                    <div class="qty-title">1층 창고 재고</div>
+                                    <div class="qty-num">${item.floor1Stock}개</div>
+                                </div>
+                                <div class="qty-box qty-total">
+                                    <div class="qty-title" style="color:#1a365d; font-weight:700;">전체 합계</div>
+                                    <div class="qty-num highlight">${item.totalStock}개</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                resultBox.innerHTML = html;
+            } else {
+                resultBox.innerHTML = `
+                    <div class="info-msg">
+                        🔍 <b>추출 및 판독 텍스트:</b><br>
+                        <span style="color:var(--primary-color); font-weight:700;">"${inputText.trim()}"</span><br><br>
+                        ❌ 일치하는 재고 품목이 존재하지 않습니다.
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
